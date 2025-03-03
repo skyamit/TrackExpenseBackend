@@ -7,6 +7,9 @@ const earningSchema = new mongoose.Schema({
   description: String,
   date: Date,
   medium: String,
+  type: String, 
+  assetId : String, 
+  liabilityId : String
 });
 
 module.exports = mongoose.model("Earning", earningSchema);

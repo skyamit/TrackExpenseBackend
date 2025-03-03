@@ -7,6 +7,7 @@ const stockSchema = new mongoose.Schema({
   description: String,
   date: Date,
   symbol: String,
+  expenseId: String
 });
 
 module.exports = mongoose.model("Stock", stockSchema);

@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const contactUs = async (req, res) =>{
+async function contactUs(req, res) {
   const {email, name, body} = req.body;
   mailToTrackExpense(email, name, body);
   thanksForContactingUs(email, name);
@@ -71,7 +71,7 @@ const thanksForContactingUs = async (email, name) => {
   }
 }
 
-const sendRegistrationEmail = async (email, name) => {
+async function sendRegistrationEmail(email, name) {
   try {
     console.log("Inside send registration mail");
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:4000";

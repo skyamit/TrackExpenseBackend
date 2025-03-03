@@ -15,6 +15,7 @@ const { createEarning, updateEarning, getAllEarning, deleteEarningById, getAllEa
 const { createMutualFund, getAllMutualFund, deleteMutualFundById, updateMutualFund } = require("./mututalFunds/MutualFundService");
 const { createStock, getAllStock, deleteStockById, updateStock } = require("./stock/StockService");
 const { contactUs } = require("./mail/Mailservice");
+const { getAllAsset } = require("./asset/assetService");
 require("dotenv").config();
 
 const app = express();
@@ -36,6 +37,11 @@ mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   dbName: "TrackXpenseDB",
+});
+
+// get Asset
+app.post("/asset", async (req, res) => {
+  await getAllAsset(req, res);
 });
 
 // user resource

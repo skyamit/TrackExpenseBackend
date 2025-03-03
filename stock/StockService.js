@@ -1,8 +1,26 @@
+const { saveEarning } = require("../earning/EarningService");
+const { saveExpense } = require("../expense/ExpenseService");
+const Asset = require("../model/Asset");
+const Earning = require("../model/Earning");
+const Expense = require("../model/Expense");
 const Stock = require("../model/Stock");
 
 async function createStock(req, res) {
   try {
     const { userId, symbol, description, price, quantity, date } = req.body;
+    const amountSpent = Number(price) * Number(quantity);
+    let expenseId = await saveExpense({
+      userId,
+      amount: amountSpent,
+      category: description,
+      description: "Bought stock",
+      date,
+      medium: "online",
+      type: "asset",
+      assetType: 'Stock',
+      quantity: quantity
+    });
+
     let stock = new Stock({
       userId,
       symbol,
@@ -10,8 +28,10 @@ async function createStock(req, res) {
       price,
       quantity,
       date,
+      expenseId
     });
     await stock.save();
+
     res.json({ message: "Inserted Record" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
@@ -20,7 +40,7 @@ async function createStock(req, res) {
 
 async function getAllStock(req, res) {
   try {
-    const { userId, limit=10, offset=0, filter={} } = req.body;
+    const { userId, limit = 10, offset = 0, filter = {} } = req.body;
     const pageLimit = parseInt(limit, 10);
     const pageOffset = parseInt(offset, 10);
     const { year, month, query } = filter;
@@ -29,33 +49,38 @@ async function getAllStock(req, res) {
       userId: userId,
       date: {
         $gte: new Date(`${year}-01-01`),
-        $lt: new Date(`${parseInt(year) + 1}-01-01`)
-      }
+        $lt: new Date(`${parseInt(year) + 1}-01-01`),
+      },
     };
 
     if (month) {
       searchQuery.date = {
         $gte: new Date(`${year}-${month}-01`),
-        $lt: new Date(`${year}-${parseInt(month) + 1}-01`)
+        $lt: new Date(`${year}-${parseInt(month) + 1}-01`),
       };
     }
     if (query) {
       searchQuery.$or = [
-        { description: { $regex: query, $options: "i" } }, 
-        { symbol: { $regex: query, $options: "i" } } 
+        { description: { $regex: query, $options: "i" } },
+        { symbol: { $regex: query, $options: "i" } },
       ];
     }
 
     // let query = {userId : userId};
     let stockList = await Stock.find(searchQuery)
-    .skip(pageOffset)
-    .limit(pageLimit)
-    .sort({ date: -1 });
+      .skip(pageOffset)
+      .limit(pageLimit)
+      .sort({ date: -1 });
 
     let count = await Stock.countDocuments(searchQuery);
 
-    res.json({ stockList, count, limit: pageLimit, 
-      offset: pageOffset, totalPages: Math.ceil(count/pageLimit)});
+    res.json({
+      stockList,
+      count,
+      limit: pageLimit,
+      offset: pageOffset,
+      totalPages: Math.ceil(count / pageLimit),
+    });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -70,15 +95,35 @@ async function updateStock(req, res) {
       return res.status(404).json({ error: "Stock not found" });
     }
     if (stock.userId.toString() !== userId) {
-      return res.status(403).json({ error: "Unauthorized: You don't own this stock" });
+      return res
+        .status(403)
+        .json({ error: "Unauthorized: You don't own this stock" });
     }
-    if (Number(quantity) === Number(stock.quantity)) {
+    let expenseObj = await Expense.findById(stock.expenseId);
+    let nQuantity = Number(stock.quantity) - Number(quantity);
+    const amountEarned = Number(sellPrice) * Number(quantity);
+
+    let earning = await saveEarning({
+      userId,
+      amount: amountEarned,
+      source: stock.description,
+      description: "Sold Stock",
+      date: new Date().toISOString().split("T")[0],
+      medium: "online",
+      type: "asset",
+      quantity : quantity,
+      assetType : 'Stock',
+      assetId : expenseObj.assetId
+    });
+
+    if (nQuantity == 0) {
       await Stock.deleteOne({ _id: stockId });
-      return res.json({ message: "Stock sold completely and deleted from records" });
+      return res.json({
+        message: "Stock sold completely and deleted from records",
+      });
     } else {
-      let nQuantity = Number(stock.quantity) - Number(quantity);
       stock.quantity = nQuantity;
-      await stock.save(); 
+      await stock.save();
       return res.json({ message: "Stock partially sold", updatedStock: stock });
     }
   } catch (error) {
@@ -86,13 +131,20 @@ async function updateStock(req, res) {
   }
 }
 
-
 async function deleteStockById(req, res) {
   try {
-    const { stockId } = req.body;
-    let isDeleted = await Stock.deleteOne({ _id: stockId });
-    res.json({ isDeleted });
+    const { stockId, userId } = req.body;
+    let stock = await Stock.findById(stockId);
+    let expenseObj = await Expense.findById(stock.expenseId);
+    let assetId = expenseObj.assetId;
+    let expenseId = stock.expenseId;
+    await Earning.deleteMany({assetId: assetId});
+    await Asset.deleteOne({_id: assetId});
+    await Expense.deleteOne({ _id: expenseId });
+    await Stock.deleteOne({ _id: stockId });
+    res.json({ message : "Deleted successfully" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }

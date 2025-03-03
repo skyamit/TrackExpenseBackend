@@ -1,4 +1,4 @@
-const sendRegistrationEmail = require("../mail/Mailservice");
+const {sendRegistrationEmail} = require("../mail/Mailservice");
 const User = require("../model/User");
 const UserFinance = require("../model/UserFinance");
 

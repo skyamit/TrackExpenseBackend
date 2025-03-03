@@ -6,7 +6,8 @@ const mutualFundSchema = new mongoose.Schema({
   schemeCode : String,
   price : Number,
   quantity : Number, 
-  date: Date  
+  date: Date, 
+  expenseId: String
 });
 
 module.exports = mongoose.model("MututalFund", mutualFundSchema);

@@ -1,0 +1,1 @@
+const type = ['liability', 'assert', 'both'];
