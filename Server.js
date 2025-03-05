@@ -16,6 +16,8 @@ const { createMutualFund, getAllMutualFund, deleteMutualFundById, updateMutualFu
 const { createStock, getAllStock, deleteStockById, updateStock } = require("./stock/StockService");
 const { contactUs } = require("./mail/Mailservice");
 const { getAllAsset } = require("./asset/assetService");
+const { getAllLiability, createLiability } = require("./liability/liabilityService");
+const { getAllLoan, createLoan, deleteLoanById, updateLoan } = require("./loan/LoanService");
 require("dotenv").config();
 
 const app = express();
@@ -42,6 +44,26 @@ mongoose.connect(process.env.MONGO_URI, {
 // get Asset
 app.post("/asset", async (req, res) => {
   await getAllAsset(req, res);
+});
+//get liability
+app.post("/liability", async (req, res) => {
+  await getAllLiability(req, res);
+});
+
+// get loan
+app.post("/loan/all", async (req, res) => {
+  await getAllLoan(req, res);
+});
+app.post("/loan/add", async (req, res) =>{
+  await createLoan(req, res);
+});
+
+app.delete("/loan", async (req, res) => {
+  await deleteLoanById(req, res);
+});
+
+app.put("/loan", async (req, res) => {
+  await updateLoan(req, res);
 });
 
 // user resource

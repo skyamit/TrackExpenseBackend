@@ -4,7 +4,7 @@ async function saveAsset({ userId, value, name, description, date, type }) {
   try {
     let asset = new Asset({
       userId,
-      type, 
+      type,
       value,
       name,
       description,

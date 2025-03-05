@@ -1,4 +1,8 @@
 const { saveAsset, updateAsset } = require("../asset/assetService");
+const {
+  createLiability,
+  saveLiability,
+} = require("../liability/liabilityService");
 const Earning = require("../model/Earning");
 const EarningType = require("../model/EarningType");
 
@@ -10,12 +14,44 @@ async function saveEarning({
   date,
   medium,
   type,
-  assetType,  
+  assetType,
   quantity,
   assetId,
-  liabilityId
+  liabilityType,
 }) {
   try {
+    let liabilityObj = null;
+    if (type == "asset") {
+      let amt = amount;
+      if (assetType == "Stock" || assetType == "Mutual Fund") {
+        console.log(assetType);
+        amt = quantity;
+        console.log(amt);
+        await updateAsset({ assetId, value: amt });
+      } else {
+        assetId = await saveAsset({
+          userId,
+          value: amt,
+          name: source,
+          description,
+          date,
+          type: type,
+        });
+      }
+    } else if (type == "liability") {
+      let amt = amount;
+      if (liabilityType == "Loan") {
+        liabilityObj = await saveLiability({
+          userId,
+          value: amt,
+          remainingAmount: amt,
+          name: source,
+          description,
+          date,
+          type: liabilityType,
+        });
+      }
+    }
     let earning = new Earning({
       userId,
       amount,
@@ -25,21 +61,9 @@ async function saveEarning({
       medium,
       type,
       assetId,
-      liabilityId
+      liabilityId: liabilityObj?._id,
     });
     await earning.save();
-    if (earning.type == 'asset') {      
-      let amt = amount;
-      if (assetType == 'Stock' || assetType == 'Mutual Fund') {
-        amt = quantity;
-      }
-      console.log(amt + " " + quantity + " ")
-
-      updateAsset({assetId, value: amt});
-    } else if (earning.type == 'liability') {
-      // updateLiability();
-    } 
-
     return earning._id;
   } catch (error) {
     console.log(error);
@@ -111,12 +135,13 @@ async function updateEarning(req, res) {}
 async function deleteEarningById(req, res) {
   try {
     const { earningId } = req.body;
-    let earning = Earning.findById(earningId);
+    let earning = await Earning.findById(earningId);
+    console.log(earning._id)
     if (earning && earning.type == "other") {
       let isDeleted = await Earning.deleteOne({ _id: earningId });
-      res.json({ isDeleted });
+      res.json({ message: "Deleted earning successfully" });
     } else {
-      res.status(500).json({ error: "Please sell/delete asset" });
+      res.status(500).json({ error: "Please sell/delete asset directly" });
     }
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
@@ -132,7 +157,7 @@ async function createEarningType(req, res) {
       earningType,
     });
     await earningTypeT.save();
-    res.json({ message: "Inserted Record" });
+    res.json({ message: "Created earning type successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -154,7 +179,7 @@ async function deleteEarningTypeById(req, res) {
   try {
     const { earningTypeId } = req.body;
     let isDeleted = await EarningType.deleteOne({ _id: earningTypeId });
-    res.json({ isDeleted });
+    res.json({ message: "Deleted earning type successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }

@@ -146,7 +146,7 @@ async function deleteMutualFundById(req, res) {
     await Asset.deleteOne({_id: assetId});
     await Expense.deleteOne({ _id: expenseId });
     await MutualFund.deleteOne({ _id: mutualFundId });
-    res.json({ isDeleted });
+    res.json({ message : "Deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }

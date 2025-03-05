@@ -1,4 +1,5 @@
 const { saveAsset } = require("../asset/assetService");
+const { saveLiability, updateLiability } = require("../liability/liabilityService");
 const Expense = require("../model/Expense");
 const ExpenseType = require("../model/ExpenseType");
 
@@ -11,17 +12,17 @@ async function saveExpense({
   date,
   medium,
   assetType,
-  quantity
+  quantity,
+  liabilityType,
+  liabilityId,
 }) {
   try {
     let assetObj = null;
-    let liabilityObj = null;
     if (type == "asset") {
       let amt = amount;
       if (assetType == 'Stock' || assetType == 'Mutual Fund') {
         amt = quantity;
       }
-      console.log(amt + " " + quantity + " ")
       assetObj = await saveAsset({
         userId, 
         value: amt, 
@@ -31,9 +32,12 @@ async function saveExpense({
         type : assetType
       });
     } else if (type == "liability") {
-      // liabilityObj = await saveLiability();
+      let amt = amount;
+      if (liabilityType == "Loan") {
+        // amt = quantity;
+      }
+      updateLiability({ liabilityId, reducedAmount: amt });
     }
-
     let expense = new Expense({
       userId,
       amount,
@@ -43,7 +47,7 @@ async function saveExpense({
       date,
       medium,
       assetId : assetObj?._id,
-      liabilityId: liabilityObj?._id
+      liabilityId
     });
     await expense.save();
     return expense._id;

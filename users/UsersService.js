@@ -15,7 +15,7 @@ async function loginUser(req, res) {
     }
     if (!user) {
       user = new User({ _id: googleId, name, email, picture });
-      sendRegistrationEmail(email, name);
+      await sendRegistrationEmail(email, name);
       await user.save();
       console.log("New user inserted");
     }
@@ -30,13 +30,10 @@ async function getUserFinance(req, res) {
     try {
         const { userId} = req.body;
         let userFinance = await UserFinance.find({userId: userId});
-        console.log(userFinance);
         if (userId && userFinance.length == 0) {
-          uf = new UserFinance({userId: userId, currentBalance: 0, totalStocksInvestment: 0, totalMutualFundInvestment: 0})
-          uf.save();
-          userFinance.push(uf)
-        }
-        res.json({userFinance});
+          res.status(500).json({error : "Add earning to see balance"})
+        } else 
+          res.json({userFinance});
     } catch (error) {
         res.status(500).json({error : "Internal Server Error"});
     }
@@ -47,10 +44,8 @@ async function updateUserFinance(req, res) {
     const { _id, userId, currentBalance, totalMutualFundInvestment, totalStocksInvestment } = req.body;
     let finance = await UserFinance.findById(_id);
     if (!finance) {
-      return res.status(404).json({ error: "Finance record not found" });
-    }
-    if (finance.userId !== userId) {
-      return res.status(403).json({ error: "Unauthorized: Invalid user" });
+      finance = new UserFinance({userId: userId, currentBalance: 0, totalStocksInvestment: 0, totalMutualFundInvestment: 0})
+      finance.save();
     }
     if (currentBalance !== undefined) finance.currentBalance = currentBalance;
     if (totalMutualFundInvestment !== undefined) finance.totalMutualFundInvestment = totalMutualFundInvestment;
