@@ -2,10 +2,10 @@
   "name": "trackxpensebackend",
   "version": "1.0.0",
   "main": "index.js",
-"scripts": {
-  "start": "node index.js",
-  "dev": "nodemon index.js",
-  "build": "echo 'No build step required for backend'"
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "build": "echo 'No build step required for backend'"
   },
   "keywords": [],
   "author": "",
