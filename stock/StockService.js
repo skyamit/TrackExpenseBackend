@@ -17,8 +17,8 @@ async function createStock(req, res) {
       date,
       medium: "online",
       type: "asset",
-      assetType: 'Stock',
-      quantity: quantity
+      assetType: "Stock",
+      quantity: quantity,
     });
 
     let stock = new Stock({
@@ -28,12 +28,12 @@ async function createStock(req, res) {
       price,
       quantity,
       date,
-      expenseId
+      expenseId,
     });
     await stock.save();
-
-    res.json({ message: "Inserted Record" });
+    res.json({ message: "Stock purchase recorded" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
@@ -111,20 +111,23 @@ async function updateStock(req, res) {
       date: new Date().toISOString().split("T")[0],
       medium: "online",
       type: "asset",
-      quantity : quantity,
-      assetType : 'Stock',
-      assetId : expenseObj.assetId
+      quantity: quantity,
+      assetType: "Stock",
+      assetId: expenseObj.assetId,
     });
 
     if (nQuantity == 0) {
       await Stock.deleteOne({ _id: stockId });
       return res.json({
-        message: "Stock sold completely and deleted from records",
+        message: "Stock sell recorded",
       });
     } else {
       stock.quantity = nQuantity;
       await stock.save();
-      return res.json({ message: "Stock partially sold", updatedStock: stock });
+      return res.json({
+        message: "Stock partial sell recorded",
+        updatedStock: stock,
+      });
     }
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
@@ -138,11 +141,11 @@ async function deleteStockById(req, res) {
     let expenseObj = await Expense.findById(stock.expenseId);
     let assetId = expenseObj.assetId;
     let expenseId = stock.expenseId;
-    await Earning.deleteMany({assetId: assetId});
-    await Asset.deleteOne({_id: assetId});
+    await Earning.deleteMany({ assetId: assetId });
+    await Asset.deleteOne({ _id: assetId });
     await Expense.deleteOne({ _id: expenseId });
     await Stock.deleteOne({ _id: stockId });
-    res.json({ message : "Deleted successfully" });
+    res.json({ message: "Deleted stock successfully" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: "Internal Server Error" });

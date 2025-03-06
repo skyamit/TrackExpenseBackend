@@ -1,6 +1,7 @@
 const { saveEarning } = require("../earning/EarningService");
 const { saveExpense } = require("../expense/ExpenseService");
 const Earning = require("../model/Earning");
+const Expense = require("../model/Expense");
 const Liability = require("../model/Liability");
 const Loan = require("../model/Loan");
 
@@ -16,7 +17,7 @@ async function createLoan(req, res) {
       date: new Date().toISOString().split("T")[0],
       medium: "online",
       type: "liability",
-      liabilityType: 'Loan',
+      liabilityType: "Loan",
     });
 
     let loan = new Loan({
@@ -29,9 +30,8 @@ async function createLoan(req, res) {
       remainingAmount,
       earningId,
     });
-    console.log("saving loan");
     await loan.save();
-    res.json({ message: "Inserted Record" });
+    res.json({ message: "Loan successfully recorded" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -112,13 +112,13 @@ async function updateLoan(req, res) {
       medium: "online",
       type: "liability",
       liabilityType: "Loan",
-      liabilityId: earningObj.liabilityId
+      liabilityId: earningObj.liabilityId,
     });
 
     if (nRemainingAmount == 0) {
       await Loan.deleteOne({ _id: loanId });
       return res.json({
-        message: "Loan completely paid and deleted from records",
+        message: "Loan paid successfully",
       });
     } else {
       loan.remainingAmount = nRemainingAmount;
@@ -145,8 +145,9 @@ async function deleteLoanById(req, res) {
     await Liability.deleteOne({ _id: liabilityId });
     await Earning.deleteOne({ _id: earningId });
     await Loan.deleteOne({ _id: loanId });
-    res.json({ message : "Deleted successfully" });
+    res.json({ message: "Deleted Loan successfully" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }

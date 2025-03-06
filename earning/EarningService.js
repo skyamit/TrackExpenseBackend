@@ -20,7 +20,7 @@ async function saveEarning({
   liabilityType,
 }) {
   try {
-    let liabilityObj = null;
+    let liabilityId = null;
     if (type == "asset") {
       let amt = amount;
       if (assetType == "Stock" || assetType == "Mutual Fund") {
@@ -41,7 +41,7 @@ async function saveEarning({
     } else if (type == "liability") {
       let amt = amount;
       if (liabilityType == "Loan") {
-        liabilityObj = await saveLiability({
+        liabilityId = await saveLiability({
           userId,
           value: amt,
           remainingAmount: amt,
@@ -61,7 +61,7 @@ async function saveEarning({
       medium,
       type,
       assetId,
-      liabilityId: liabilityObj?._id,
+      liabilityId,
     });
     await earning.save();
     return earning._id;
@@ -76,8 +76,9 @@ async function createEarning(req, res) {
     const { userId, amount, type, source, description, date, medium } =
       req.body;
     saveEarning({ userId, amount, type, source, description, date, medium });
-    res.json({ message: "Inserted Record" });
+    res.json({ message: "Earning recorded successfully" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
@@ -126,6 +127,7 @@ async function getAllEarning(req, res) {
       totalPages: Math.ceil(count / pageLimit),
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
@@ -136,7 +138,7 @@ async function deleteEarningById(req, res) {
   try {
     const { earningId } = req.body;
     let earning = await Earning.findById(earningId);
-    console.log(earning._id)
+    // console.log(earning._id)
     if (earning && earning.type == "other") {
       let isDeleted = await Earning.deleteOne({ _id: earningId });
       res.json({ message: "Deleted earning successfully" });

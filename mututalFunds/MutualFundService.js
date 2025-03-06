@@ -17,8 +17,8 @@ async function createMutualFund(req, res) {
       date,
       medium: "online",
       type: "asset",
-      assetType : 'Mutual Fund',
-      quantity : quantity
+      assetType: "Mutual Fund",
+      quantity: quantity,
     });
 
     let mutualFund = new MutualFund({
@@ -28,12 +28,12 @@ async function createMutualFund(req, res) {
       price,
       quantity,
       date,
-      expenseId
+      expenseId,
     });
     await mutualFund.save();
-
-    res.json({ message: "Inserted Record" });
+    res.json({ message: "Mutual Fund purchase recorded" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
@@ -105,27 +105,27 @@ async function updateMutualFund(req, res) {
 
     let earning = await saveEarning({
       userId,
-      amount : amountEarned,
+      amount: amountEarned,
       source: mutualFund.name,
-      description: 'Sold Mutual Fund',
+      description: "Sold Mutual Fund",
       date: new Date().toISOString().split("T")[0],
-      medium : 'online',
-      type: 'asset',
+      medium: "online",
+      type: "asset",
       quantity: quantity,
-      assetType : 'Mutual Fund',
-      assetId : expenseObj.assetId
+      assetType: "Mutual Fund",
+      assetId: expenseObj.assetId,
     });
 
     if (nQuantity == 0) {
       await MutualFund.deleteOne({ _id: mutualFundId });
       return res.json({
-        message: "Mutual Fund sold completely and deleted from records",
+        message: "Mutual Fund sell recorded",
       });
     } else {
       mutualFund.quantity = nQuantity;
       await mutualFund.save();
       return res.json({
-        message: "Mutual Fund partially sold",
+        message: "Mutual Fund partial sell recorded",
         updateMutualFund: mutualFund,
       });
     }
@@ -142,11 +142,11 @@ async function deleteMutualFundById(req, res) {
     let expenseObj = await Expense.findById(mutualFund.expenseId);
     let assetId = expenseObj.assetId;
     let expenseId = mutualFund.expenseId;
-    await Earning.deleteMany({assetId: assetId});
-    await Asset.deleteOne({_id: assetId});
+    await Earning.deleteMany({ assetId: assetId });
+    await Asset.deleteOne({ _id: assetId });
     await Expense.deleteOne({ _id: expenseId });
     await MutualFund.deleteOne({ _id: mutualFundId });
-    res.json({ message : "Deleted successfully" });
+    res.json({ message: "Deleted Mutual Fund successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }

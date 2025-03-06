@@ -34,9 +34,18 @@ async function saveExpense({
     } else if (type == "liability") {
       let amt = amount;
       if (liabilityType == "Loan") {
-        // amt = quantity;
+        await updateLiability({ liabilityId, reducedAmount: amt });
+      } else {
+        liabilityId = await saveLiability({
+          userId,
+          value: amt,
+          remainingAmount: amt,
+          name: category,
+          description,
+          date,
+          type: type,
+        });
       }
-      updateLiability({ liabilityId, reducedAmount: amt });
     }
     let expense = new Expense({
       userId,
@@ -61,17 +70,8 @@ async function createExpense(req, res) {
   try {
     const { userId, amount, type, category, description, date, medium } =
       req.body;
-    saveExpense({ 
-      userId, 
-      amount, 
-      type, 
-      category, 
-      description, 
-      date, 
-      medium,
-      assetType: type 
-    });
-    res.json({ message: "Inserted Record" });
+    saveExpense({ userId, amount, type, category, description, date, medium, assetType: type });
+    res.json({ message: "Expense recorded successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -131,12 +131,12 @@ async function updateExpense(req, res) {}
 async function deleteExpenseById(req, res) {
   try {
     const { expenseId } = req.body;
-    let expense = Expense.findById(expenseId);
+    let expense = await Expense.findById(expenseId);
     if (expense && expense.type == "other") {
       let isDeleted = await Expense.deleteOne({ _id: expenseId });
-      res.json({ isDeleted });
+      res.json({ message: "Deleted expense successfully" });
     } else {
-      res.status(500).json({ error: "Please sell/delete asset" });
+      res.status(500).json({ error: "Please sell/delete asset or liability directly" });
     }
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
@@ -151,7 +151,7 @@ async function createExpenseType(req, res) {
       expenseType,
     });
     await expenseTypeT.save();
-    res.json({ message: "Inserted Record" });
+    res.json({ message: "Created expense type successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
@@ -173,7 +173,7 @@ async function deleteExpenseTypeById(req, res) {
   try {
     const { expenseTypeId } = req.body;
     let isDeleted = await ExpenseType.deleteOne({ _id: expenseTypeId });
-    res.json({ isDeleted });
+    res.json({ message: "Deleted expense type successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
