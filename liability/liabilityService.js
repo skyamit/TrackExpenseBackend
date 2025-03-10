@@ -1,3 +1,6 @@
+const { saveExpense } = require("../expense/ExpenseService");
+const Earning = require("../model/Earning");
+const Expense = require("../model/Expense");
 const Liability = require("../model/Liability");
 
 async function saveLiability({
@@ -27,19 +30,56 @@ async function saveLiability({
   return null;
 }
 
-async function updateLiability({ liabilityId, reducedAmount }) {
+async function deleteLiability(req, res) {
   try {
+    let { liabilityId } = req.body;
     let liability = await Liability.findById(liabilityId);
-    let nRemainingAmount =
-      Number(liability.remainingAmount) - Number(reducedAmount);
-    if (nRemainingAmount == 0) {
-      await Liability.deleteOne({ _id: liabilityId });
+    if (liability) {
+      await Liability.deleteOne({ _id: liability });
+      await Earning.deleteMany({ liabilityId: liabilityId });
+      await Expense.deleteOne({ liabilityId: liabilityId });
+      res.json({ message: "Deleted liability successfully" });
     } else {
-      liability.remainingAmount = nRemainingAmount;
-      await liability.save();
+      res.status(500).json({ message: "Invalid liability" });
     }
   } catch (error) {
     console.log(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
+async function updateLiability(req, res) {
+  try {
+    let { liabilityId, paid } = req.body;
+    let liability = await Liability.findById(liabilityId);
+    let nRemainingAmount = Number(liability.remainingAmount) - Number(paid);
+    let expense = new Expense({
+      userId : liability.userId,
+      amount: Number(paid),
+      category: liability.name,
+      description: "Paid for" + liability.name,
+      date: new Date().toISOString().split("T")[0],
+      medium: "online",
+      type: "liability",
+      liabilityType: "liability",
+      liabilityId: liabilityId,
+    });
+    await expense.save();
+    if (nRemainingAmount == 0) {
+      await Liability.deleteOne({ _id: liabilityId });        message: "Loan paid successfully",
+      res.json({
+        message: "Liability paid successfully",
+      });
+    } else {
+      liability.remainingAmount = nRemainingAmount;
+      await liability.save();
+      res.json({
+        message: "Liability updated successfully",
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 }
 
@@ -94,5 +134,6 @@ async function getAllLiability(req, res) {
 module.exports = {
   getAllLiability,
   saveLiability,
-  updateLiability,
+  deleteLiability,
+  updateLiability
 };

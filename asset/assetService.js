@@ -1,4 +1,7 @@
+const { saveEarning } = require("../earning/EarningService");
 const Asset = require("../model/Asset");
+const Earning = require("../model/Earning");
+const Expense = require("../model/Expense");
 
 async function saveAsset({ userId, value, name, description, date, type }) {
   try {
@@ -18,18 +21,49 @@ async function saveAsset({ userId, value, name, description, date, type }) {
   return null;
 }
 
-async function updateAsset({ assetId, value }) {
+async function deleteAsset(req, res) {
   try {
+    let { assetId } = req.body;
     let asset = await Asset.findById(assetId);
-    let nValue = Number(asset.value) - Number(value);
-    if (nValue == 0) {
+    if (asset) {
       await Asset.deleteOne({ _id: assetId });
+      await Earning.deleteMany({ assetId: assetId });
+      await Expense.deleteMany({ assetId: assetId });
+      res.json({ message: "Deleted asset successfully" });
     } else {
-      asset.value = nValue;
-      await asset.save();
+      res.status(500).json({ message: "Invalid asset" });
+    }
+  } catch (error) {
+    console.log(error);    
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
+async function sellAsset(req, res) {
+  try {
+    let { assetId, soldFor } = req.body;
+    let asset = await Asset.findById(assetId);
+    if (asset) {
+      await Asset.deleteOne({ _id: assetId });
+      let earning = new Earning({
+        userId: asset.userId,
+        amount: soldFor,
+        source: asset.name,
+        description: "Sold " + asset.name,
+        date: new Date().toISOString().split("T")[0],
+        medium: "online",
+        type: "asset",
+        assetType: "asset",
+        assetId: assetId,
+      })
+      await earning.save();
+      res.json({ message: "Sold asset successfully" });
+    } else {
+      res.status(500).json({ message: "Invalid asset" });
     }
   } catch (error) {
     console.log(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 }
 
@@ -81,4 +115,4 @@ async function getAllAsset(req, res) {
   }
 }
 
-module.exports = { getAllAsset, saveAsset, updateAsset };
+module.exports = { getAllAsset, saveAsset, deleteAsset, sellAsset };

@@ -70,7 +70,7 @@ async function createExpense(req, res) {
   try {
     const { userId, amount, type, category, description, date, medium } =
       req.body;
-    saveExpense({ userId, amount, type, category, description, date, medium, assetType: type });
+    await saveExpense({ userId, amount, type, category, description, date, medium, assetType: type });
     res.json({ message: "Expense recorded successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });

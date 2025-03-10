@@ -75,7 +75,7 @@ async function createEarning(req, res) {
   try {
     const { userId, amount, type, source, description, date, medium } =
       req.body;
-    saveEarning({ userId, amount, type, source, description, date, medium });
+    await saveEarning({ userId, amount, type, source, description, date, medium });
     res.json({ message: "Earning recorded successfully" });
   } catch (error) {
     console.log(error);

@@ -15,8 +15,8 @@ const { createEarning, updateEarning, getAllEarning, deleteEarningById, getAllEa
 const { createMutualFund, getAllMutualFund, deleteMutualFundById, updateMutualFund } = require("./mututalFunds/MutualFundService");
 const { createStock, getAllStock, deleteStockById, updateStock } = require("./stock/StockService");
 const { contactUs } = require("./mail/Mailservice");
-const { getAllAsset } = require("./asset/assetService");
-const { getAllLiability, createLiability } = require("./liability/liabilityService");
+const { getAllAsset, deleteAsset, sellAsset } = require("./asset/assetService");
+const { getAllLiability, createLiability, deleteLiability, updateLiability } = require("./liability/liabilityService");
 const { getAllLoan, createLoan, deleteLoanById, updateLoan } = require("./loan/LoanService");
 require("dotenv").config();
 
@@ -45,9 +45,22 @@ mongoose.connect(process.env.MONGO_URI, {
 app.post("/asset", async (req, res) => {
   await getAllAsset(req, res);
 });
+app.delete("/asset", async(req, res) => {
+  await deleteAsset(req, res);
+});
+app.put("/asset", async (req, res) => {
+  await sellAsset(req, res);
+});
+
 //get liability
 app.post("/liability", async (req, res) => {
   await getAllLiability(req, res);
+});
+app.delete("/liability", async(req, res) => {
+  await deleteLiability(req, res);
+});
+app.put("/liability", async (req, res) => {
+  await updateLiability(req, res);
 });
 
 // get loan
