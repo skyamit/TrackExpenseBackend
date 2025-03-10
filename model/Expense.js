@@ -9,7 +9,8 @@ const expenseSchema = new mongoose.Schema({
   medium: String,
   type: String,
   assetId : String, 
-  liabilityId : String
+  liabilityId : String,
+  recurrenceType: String
 });
 
 module.exports = mongoose.model("Expense", expenseSchema);

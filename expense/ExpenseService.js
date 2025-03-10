@@ -1,5 +1,10 @@
 const { saveAsset } = require("../asset/assetService");
-const { saveLiability, updateLiability } = require("../liability/liabilityService");
+const { getNextPaymentDate } = require("../common/Utility");
+const {
+  saveLiability,
+  updateLiability,
+} = require("../liability/liabilityService");
+const { startOfToday } = require("date-fns");
 const Expense = require("../model/Expense");
 const ExpenseType = require("../model/ExpenseType");
 
@@ -15,21 +20,22 @@ async function saveExpense({
   quantity,
   liabilityType,
   liabilityId,
+  recurrenceType
 }) {
   try {
     let assetObj = null;
     if (type == "asset") {
       let amt = amount;
-      if (assetType == 'Stock' || assetType == 'Mutual Fund') {
+      if (assetType == "Stock" || assetType == "Mutual Fund") {
         amt = quantity;
       }
       assetObj = await saveAsset({
-        userId, 
-        value: amt, 
-        name : category,
-        description, 
+        userId,
+        value: amt,
+        name: category,
+        description,
         date,
-        type : assetType
+        type: assetType,
       });
     } else if (type == "liability") {
       let amt = amount;
@@ -55,8 +61,9 @@ async function saveExpense({
       description,
       date,
       medium,
-      assetId : assetObj?._id,
-      liabilityId
+      assetId: assetObj?._id,
+      liabilityId,
+      recurrenceType
     });
     await expense.save();
     return expense._id;
@@ -68,9 +75,27 @@ async function saveExpense({
 
 async function createExpense(req, res) {
   try {
-    const { userId, amount, type, category, description, date, medium } =
-      req.body;
-    await saveExpense({ userId, amount, type, category, description, date, medium, assetType: type });
+    const {
+      userId,
+      amount,
+      type,
+      category,
+      description,
+      date,
+      medium,
+      recurrenceType = "none",
+    } = req.body;
+    await saveExpense({
+      userId,
+      amount,
+      type,
+      category,
+      description,
+      date,
+      medium,
+      assetType: type,
+      recurrenceType,
+    });
     res.json({ message: "Expense recorded successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
@@ -136,7 +161,9 @@ async function deleteExpenseById(req, res) {
       let isDeleted = await Expense.deleteOne({ _id: expenseId });
       res.json({ message: "Deleted expense successfully" });
     } else {
-      res.status(500).json({ error: "Please sell/delete asset or liability directly" });
+      res
+        .status(500)
+        .json({ error: "Please sell/delete asset or liability directly" });
     }
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
@@ -179,6 +206,39 @@ async function deleteExpenseTypeById(req, res) {
   }
 }
 
+// get recurring expense for last 30 days
+async function getLast30DaysExpense(req, res) {
+    try {
+      const {userId} = req.body;
+      const today = startOfToday();
+  
+      const recurringExpenses = await Expense.aggregate([
+        { $match: { userId, recurrenceType: { $in: ["daily", "weekly", "monthly", "yearly"]}}},
+        { $sort: { date: -1 } },
+        {
+          $group: {
+            _id: { category: "$category", recurrenceType: "$recurrenceType" },
+            latestExpense: { $first: "$$ROOT" }, 
+          },
+        },
+      ]);
+      const expensesWithNextPayment = recurringExpenses
+        .map(({ latestExpense }) => {
+          const nextPaymentDate = getNextPaymentDate(latestExpense.recurrenceType, latestExpense.date);
+          return nextPaymentDate >= today
+            ? { ...latestExpense, nextPaymentDate }
+            : null;
+        })
+        .filter((expense) => expense !== null) 
+        .sort((a, b) => new Date(a.nextPaymentDate) - new Date(b.nextPaymentDate)); 
+  
+      res.status(200).json(expensesWithNextPayment);
+    } catch (error) {
+      console.error("Error fetching recurring expenses:", error);
+      res.status(500).json({ message: "Server error while fetching expenses" });
+    }
+}
+
 module.exports = {
   saveExpense,
   updateExpense,
@@ -188,4 +248,5 @@ module.exports = {
   createExpenseType,
   getAllExpenseType,
   deleteExpenseTypeById,
+  getLast30DaysExpense
 };

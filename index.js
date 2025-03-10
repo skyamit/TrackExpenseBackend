@@ -9,7 +9,8 @@ const {
   deleteExpenseById,
   deleteExpenseTypeById,
   getAllExpenseType,
-  createExpenseType
+  createExpenseType,
+  getLast30DaysExpense
 } = require("./expense/ExpenseService");
 const { createEarning, updateEarning, getAllEarning, deleteEarningById, getAllEarningType, createEarningType, deleteEarningTypeById } = require("./earning/EarningService");
 const { createMutualFund, getAllMutualFund, deleteMutualFundById, updateMutualFund } = require("./mututalFunds/MutualFundService");
@@ -18,6 +19,7 @@ const { contactUs } = require("./mail/Mailservice");
 const { getAllAsset, deleteAsset, sellAsset } = require("./asset/assetService");
 const { getAllLiability, createLiability, deleteLiability, updateLiability } = require("./liability/liabilityService");
 const { getAllLoan, createLoan, deleteLoanById, updateLoan } = require("./loan/LoanService");
+const { financeSummary } = require("./dashboard/dashboardService");
 require("dotenv").config();
 
 const app = express();
@@ -39,6 +41,16 @@ mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   dbName: "TrackXpenseDB",
+});
+
+// last 30 days expense 
+app.post("/expense/30days", async (req, res) => {
+  await getLast30DaysExpense(req, res);
+})
+
+// dashboard
+app.post("/finance-summary", async (req, res) => {
+  await financeSummary(req, res);
 });
 
 // get Asset
