@@ -173,16 +173,23 @@ async function deleteExpenseById(req, res) {
 async function createExpenseType(req, res) {
   try {
     const { userId, expenseType } = req.body;
+    const formattedType = expenseType.charAt(0).toUpperCase() + expenseType.slice(1).toLowerCase();
+    const existingType = await ExpenseType.findOne({ userId, formattedType });
+    if (existingType) {
+      return res.status(400).json({ error: "Expense type already exists" });
+    }
     let expenseTypeT = new ExpenseType({
       userId,
-      expenseType,
+      formattedType,
     });
+
     await expenseTypeT.save();
     res.json({ message: "Created expense type successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
 
 async function getAllExpenseType(req, res) {
   try {

@@ -154,10 +154,16 @@ async function deleteEarningById(req, res) {
 async function createEarningType(req, res) {
   try {
     const { userId, earningType } = req.body;
+    const formattedType = earningType.charAt(0).toUpperCase() + earningType.slice(1).toLowerCase();
+    const existingType = await EarningType.findOne({ userId, formattedType });
+    if (existingType) {
+      return res.status(400).json({ error: "Earning type already exists" });
+    }
     let earningTypeT = new EarningType({
       userId,
-      earningType,
+      formattedType,
     });
+
     await earningTypeT.save();
     res.json({ message: "Created earning type successfully" });
   } catch (error) {
