@@ -19,7 +19,7 @@ const { contactUs } = require("./mail/Mailservice");
 const { getAllAsset, deleteAsset, sellAsset } = require("./asset/assetService");
 const { getAllLiability, createLiability, deleteLiability, updateLiability } = require("./liability/liabilityService");
 const { getAllLoan, createLoan, deleteLoanById, updateLoan } = require("./loan/LoanService");
-const { financeSummary } = require("./dashboard/dashboardService");
+const { financeSummary, getLast10Transactions } = require("./dashboard/dashboardService");
 require("dotenv").config();
 
 const app = express();
@@ -47,6 +47,10 @@ mongoose.connect(process.env.MONGO_URI, {
 app.post("/expense/30days", async (req, res) => {
   await getLast30DaysExpense(req, res);
 })
+
+app.post("/latest-transactions", async (req, res) => {
+  await getLast10Transactions(req, res);
+});
 
 // dashboard
 app.post("/finance-summary", async (req, res) => {

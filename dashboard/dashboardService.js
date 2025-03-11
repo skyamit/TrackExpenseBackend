@@ -51,4 +51,35 @@ async function financeSummary(req, res) {
   }
 }
 
-module.exports = { financeSummary };
+async function getLast10Transactions(req, res) {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+
+    const expenses = await Expense.find({ userId })
+      .sort({ date: -1 })
+      .limit(10)
+      .select("amount category description date");
+
+    const earnings = await Earning.find({ userId })
+      .sort({ date: -1 })
+      .limit(10)
+      .select("amount source description date");
+
+      const transactions = [
+        ...expenses.map((e) => ({ ...e.toObject(), type: "expense" })),
+        ...earnings.map((e) => ({ ...e.toObject(), type: "earning" })),
+      ]
+        .sort((a, b) => new Date(b.date) - new Date(a.date)) 
+        .slice(0, 10); 
+      
+    res.json(transactions);
+  } catch (error) {
+    console.error("Error fetching latest transactions:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+module.exports = { financeSummary, getLast10Transactions };
