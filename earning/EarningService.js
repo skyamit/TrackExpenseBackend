@@ -139,7 +139,7 @@ async function deleteEarningById(req, res) {
     const { earningId } = req.body;
     let earning = await Earning.findById(earningId);
     // console.log(earning._id)
-    if (earning && earning.type == "other") {
+    if (earning) {
       let isDeleted = await Earning.deleteOne({ _id: earningId });
       res.json({ message: "Deleted earning successfully" });
     } else {

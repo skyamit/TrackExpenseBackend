@@ -19,6 +19,11 @@ async function loginUser(req, res) {
       await user.save();
       console.log("New user inserted");
     }
+    let finance = await UserFinance.find({userId: user._id});
+    if (finance.length == 0) {
+      finance = new UserFinance({userId: user._id, currentBalance: 0, totalStocksInvestment: 0, totalMutualFundInvestment: 0})
+      finance.save();
+    }
     res.json({ googleId, message: "Login successful", name, email, picture });
   } catch (error) {
     console.log(error);
@@ -41,12 +46,10 @@ async function getUserFinance(req, res) {
 
 async function updateUserFinance(req, res) {
   try {
-    const { _id, userId, currentBalance, totalMutualFundInvestment, totalStocksInvestment } = req.body;
+    const { _id, userId, currentBalance, totalMutualFundInvestment, totalStocksInvestment } = req.body.userFinance;
+    console.log(userId);
     let finance = await UserFinance.findById(_id);
-    if (!finance) {
-      finance = new UserFinance({userId: userId, currentBalance: 0, totalStocksInvestment: 0, totalMutualFundInvestment: 0})
-      finance.save();
-    }
+    console.log(finance);
     if (currentBalance !== undefined) finance.currentBalance = currentBalance;
     if (totalMutualFundInvestment !== undefined) finance.totalMutualFundInvestment = totalMutualFundInvestment;
     if (totalStocksInvestment !== undefined) finance.totalStocksInvestment = totalStocksInvestment;

@@ -157,7 +157,7 @@ async function deleteExpenseById(req, res) {
   try {
     const { expenseId } = req.body;
     let expense = await Expense.findById(expenseId);
-    if (expense && expense.type == "other") {
+    if (expense) {
       let isDeleted = await Expense.deleteOne({ _id: expenseId });
       res.json({ message: "Deleted expense successfully" });
     } else {
