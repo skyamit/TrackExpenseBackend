@@ -1,6 +1,8 @@
+const { subMonths, startOfMonth, format, endOfMonth } = require("date-fns");
 const Earning = require("../model/Earning");
 const Expense = require("../model/Expense");
 const UserFinance = require("../model/UserFinance");
+const { default: mongoose } = require("mongoose");
 
 async function financeSummary(req, res) {
   try {
@@ -36,8 +38,13 @@ async function financeSummary(req, res) {
 
     const totalEarnings = earnings.length ? earnings[0].total : 0;
     const totalExpenses = expenses.length ? expenses[0].total : 0;
-    const balance = userFinance[0].currentBalance ? userFinance[0].currentBalance : 0;
-    const savingsPercentage = (100.00 - (totalExpenses / totalEarnings)*100).toFixed(2);
+    const balance = userFinance[0].currentBalance
+      ? userFinance[0].currentBalance
+      : 0;
+    const savingsPercentage = (
+      100.0 -
+      (totalExpenses / totalEarnings) * 100
+    ).toFixed(2);
 
     res.json({
       balance,
@@ -56,7 +63,7 @@ async function getLast10Transactions(req, res) {
     const { userId } = req.body;
 
     if (!userId) {
-      return res.status(400).json({ error: "User ID is required" });
+      return res.status(400).json({ message: "User ID is required" });
     }
 
     const expenses = await Expense.find({ userId })
@@ -69,17 +76,168 @@ async function getLast10Transactions(req, res) {
       .limit(10)
       .select("amount source description date");
 
-      const transactions = [
-        ...expenses.map((e) => ({ ...e.toObject(), type: "expense" })),
-        ...earnings.map((e) => ({ ...e.toObject(), type: "earning" })),
-      ]
-        .sort((a, b) => new Date(b.date) - new Date(a.date)) 
-        .slice(0, 10); 
-      
+    const transactions = [
+      ...expenses.map((e) => ({ ...e.toObject(), type: "expense" })),
+      ...earnings.map((e) => ({ ...e.toObject(), type: "earning" })),
+    ]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 10);
+
     res.json(transactions);
   } catch (error) {
     console.error("Error fetching latest transactions:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+async function getEarningSummaryBetween(req, res) {
+  try {
+    const { userId, startDate, endDate } = req.body;
+
+    const earnings = await Earning.aggregate([
+      {
+        $match: {
+          userId,
+          date: { $gte: new Date(startDate), $lte: new Date(endDate) },
+        },
+      },
+      { $group: { _id: "$source", totalAmount: { $sum: "$amount" } } },
+      { $sort: { totalAmount: -1 } },
+    ]);
+
+    const totalEarnings = earnings.reduce(
+      (sum, item) => sum + item.totalAmount,
+      0
+    );
+
+    let groupedEarnings = [];
+    let othersTotal = 0;
+
+    earnings.forEach((entry, index) => {
+      const percentage = (entry.totalAmount / totalEarnings) * 100;
+
+      if (index < 5) {
+        groupedEarnings.push(entry);
+      } else {
+        othersTotal += entry.totalAmount;
+      }
+    });
+
+    if (othersTotal > 0) {
+      groupedEarnings.push({ _id: "Others", totalAmount: othersTotal });
+    }
+
+    res.json(groupedEarnings);
+  } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
-module.exports = { financeSummary, getLast10Transactions };
+
+async function getExpenseSummaryBetween(req, res) {
+  try {
+    const { userId, startDate, endDate } = req.body;
+    const expenses = await Expense.aggregate([
+      {
+        $match: {
+          userId,
+          date: { $gte: new Date(startDate), $lte: new Date(endDate) },
+        },
+      },
+      { $group: { _id: "$category", totalAmount: { $sum: "$amount" } } },
+      { $sort: { totalAmount: -1 } },
+    ]);
+    const totalExpenses = expenses.reduce(
+      (sum, item) => sum + item.totalAmount,
+      0
+    );
+
+    let groupedExpenses = [];
+    let othersTotal = 0;
+
+    expenses.forEach((entry, index) => {
+      const percentage = (entry.totalAmount / totalExpenses) * 100;
+      if (index < 5) {
+        groupedExpenses.push(entry);
+      } else {
+        othersTotal += entry.totalAmount;
+      }
+    });
+    if (othersTotal > 0) {
+      groupedExpenses.push({ _id: "Others", totalAmount: othersTotal });
+    }
+
+    res.json(groupedExpenses);
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+async function getIncomeExpenseSummary(req, res) {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const months = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = startOfMonth(subMonths(new Date(), i));
+      const monthEnd = endOfMonth(subMonths(new Date(), i));
+
+      months.push({
+        month: format(monthStart, "MMM"),
+        startDate: monthStart,
+        endDate: monthEnd,
+      });
+    }
+
+    const results = await Promise.all(
+      months.map(async ({ month, startDate, endDate }) => {
+        const [totalEarnings] = await Earning.aggregate([
+          {
+            $match: {
+              userId: userId,
+              date: { $gte: startDate, $lte: endDate },
+            },
+          },
+          {
+            $group: { _id: null, total: { $sum: "$amount" } },
+          },
+        ]);
+
+        const [totalExpenses] = await Expense.aggregate([
+          {
+            $match: {
+              userId: userId,
+              date: { $gte: startDate, $lte: endDate },
+            },
+          },
+          {
+            $group: { _id: null, total: { $sum: "$amount" } },
+          },
+        ]);
+
+        return {
+          month,
+          income: totalEarnings ? totalEarnings.total : 0,
+          expense: totalExpenses ? totalExpenses.total : 0,
+        };
+      })
+    );
+
+    res.json(results);
+  } catch (error) {
+    console.error("Error fetching income-expense summary:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+module.exports = {
+  financeSummary,
+  getLast10Transactions,
+  getEarningSummaryBetween,
+  getExpenseSummaryBetween,
+  getIncomeExpenseSummary,
+};

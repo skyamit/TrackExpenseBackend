@@ -19,7 +19,7 @@ const { contactUs } = require("./mail/Mailservice");
 const { getAllAsset, deleteAsset, sellAsset } = require("./asset/assetService");
 const { getAllLiability, createLiability, deleteLiability, updateLiability } = require("./liability/liabilityService");
 const { getAllLoan, createLoan, deleteLoanById, updateLoan } = require("./loan/LoanService");
-const { financeSummary, getLast10Transactions } = require("./dashboard/dashboardService");
+const { financeSummary, getLast10Transactions, getEarningSummaryBetween, getExpenseSummaryBetween, getIncomeExpenseSummary } = require("./dashboard/dashboardService");
 require("dotenv").config();
 
 const app = express();
@@ -50,6 +50,18 @@ app.post("/expense/30days", async (req, res) => {
 
 app.post("/latest-transactions", async (req, res) => {
   await getLast10Transactions(req, res);
+});
+
+app.post("/earning-summary", async (req, res) => {
+  await getEarningSummaryBetween(req, res);
+});
+
+app.post("/expense-summary", async (req, res) => {
+  await getExpenseSummaryBetween(req, res);
+});
+
+app.post("/income-expense-summary", async (req, res) => {
+  await getIncomeExpenseSummary(req, res);
 });
 
 // dashboard
