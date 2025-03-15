@@ -161,7 +161,7 @@ async function createEarningType(req, res) {
     }
     let earningTypeT = new EarningType({
       userId,
-      formattedType,
+      earningType: formattedType,
     });
 
     await earningTypeT.save();

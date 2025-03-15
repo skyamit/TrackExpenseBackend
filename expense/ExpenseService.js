@@ -180,7 +180,7 @@ async function createExpenseType(req, res) {
     }
     let expenseTypeT = new ExpenseType({
       userId,
-      formattedType,
+      expnseType: formattedType,
     });
 
     await expenseTypeT.save();
