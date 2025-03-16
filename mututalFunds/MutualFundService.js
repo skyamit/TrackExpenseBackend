@@ -19,6 +19,7 @@ async function createMutualFund(req, res) {
       type: "asset",
       assetType: "Mutual Fund",
       quantity: quantity,
+      code : schemeCode
     });
 
     let mutualFund = new MutualFund({

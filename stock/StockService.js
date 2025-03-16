@@ -18,7 +18,8 @@ async function createStock(req, res) {
       medium: "online",
       type: "asset",
       assetType: "Stock",
-      quantity: quantity,
+      quantity,
+      code: symbol,
     });
 
     let stock = new Stock({
@@ -33,7 +34,7 @@ async function createStock(req, res) {
     await stock.save();
     res.json({ message: "Stock purchase recorded" });
   } catch (error) {
-    console.log(error);
+    console.error("Error in createStock:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
@@ -91,19 +92,19 @@ async function updateStock(req, res) {
   try {
     const { stockId, userId, quantity, sellPrice } = req.body;
     let stock = await Stock.findById(stockId);
-    if (!stock) {
-      return res.status(404).json({ error: "Stock not found" });
-    }
+    if (!stock) return res.status(404).json({ error: "Stock not found" });
+
     if (stock.userId.toString() !== userId) {
       return res
         .status(403)
         .json({ error: "Unauthorized: You don't own this stock" });
     }
+
     let expenseObj = await Expense.findById(stock.expenseId);
     let nQuantity = Number(stock.quantity) - Number(quantity);
     const amountEarned = Number(sellPrice) * Number(quantity);
 
-    let earning = await saveEarning({
+    let earningId = await saveEarning({
       userId,
       amount: amountEarned,
       source: stock.description,
@@ -111,16 +112,14 @@ async function updateStock(req, res) {
       date: new Date().toISOString().split("T")[0],
       medium: "online",
       type: "asset",
-      quantity: quantity,
+      quantity,
       assetType: "Stock",
       assetId: expenseObj.assetId,
     });
 
-    if (nQuantity == 0) {
+    if (nQuantity === 0) {
       await Stock.deleteOne({ _id: stockId });
-      return res.json({
-        message: "Stock sell recorded",
-      });
+      return res.json({ message: "Stock sell recorded" });
     } else {
       stock.quantity = nQuantity;
       await stock.save();
@@ -130,6 +129,7 @@ async function updateStock(req, res) {
       });
     }
   } catch (error) {
+    console.error("Error in updateStock:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }

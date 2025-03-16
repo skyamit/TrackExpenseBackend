@@ -1,6 +1,5 @@
-const { saveAsset, updateAsset } = require("../asset/assetService");
+const { updateAsset } = require("../asset/assetService");
 const {
-  createLiability,
   saveLiability,
 } = require("../liability/liabilityService");
 const Earning = require("../model/Earning");
@@ -28,15 +27,6 @@ async function saveEarning({
         amt = quantity;
         console.log(amt);
         await updateAsset({ assetId, value: amt });
-      } else {
-        assetId = await saveAsset({
-          userId,
-          value: amt,
-          name: source,
-          description,
-          date,
-          type: type,
-        });
       }
     } else if (type == "liability") {
       let amt = amount;
@@ -159,6 +149,7 @@ async function createEarningType(req, res) {
     if (existingType) {
       return res.status(400).json({ error: "Earning type already exists" });
     }
+    console.log(formattedType)
     let earningTypeT = new EarningType({
       userId,
       earningType: formattedType,

@@ -1,7 +1,11 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const { loginUser, updateUserFinance, getUserFinance } = require("./users/UsersService");
+const {
+  loginUser,
+  updateUserFinance,
+  getUserFinance,
+} = require("./users/UsersService");
 const {
   createExpense,
   updateExpense,
@@ -10,43 +14,70 @@ const {
   deleteExpenseTypeById,
   getAllExpenseType,
   createExpenseType,
-  getLast30DaysExpense
+  getLast30DaysExpense,
 } = require("./expense/ExpenseService");
-const { createEarning, updateEarning, getAllEarning, deleteEarningById, getAllEarningType, createEarningType, deleteEarningTypeById } = require("./earning/EarningService");
-const { createMutualFund, getAllMutualFund, deleteMutualFundById, updateMutualFund } = require("./mututalFunds/MutualFundService");
-const { createStock, getAllStock, deleteStockById, updateStock } = require("./stock/StockService");
+const {
+  createEarning,
+  updateEarning,
+  getAllEarning,
+  deleteEarningById,
+  getAllEarningType,
+  createEarningType,
+  deleteEarningTypeById,
+} = require("./earning/EarningService");
+const {
+  createMutualFund,
+  getAllMutualFund,
+  deleteMutualFundById,
+  updateMutualFund,
+} = require("./mututalFunds/MutualFundService");
+const {
+  createStock,
+  getAllStock,
+  deleteStockById,
+  updateStock,
+} = require("./stock/StockService");
 const { contactUs } = require("./mail/Mailservice");
-const { getAllAsset, deleteAsset, sellAsset } = require("./asset/assetService");
-const { getAllLiability, createLiability, deleteLiability, updateLiability } = require("./liability/liabilityService");
-const { getAllLoan, createLoan, deleteLoanById, updateLoan } = require("./loan/LoanService");
-const { financeSummary, getLast10Transactions, getEarningSummaryBetween, getExpenseSummaryBetween, getIncomeExpenseSummary } = require("./dashboard/dashboardService");
+const { getAllAsset, deleteAsset, sellAsset, fetchNavForAllMF, fetchAllAssetWithValue } = require("./asset/assetService");
+const {
+  getAllLiability,
+  createLiability,
+  deleteLiability,
+  updateLiability,
+} = require("./liability/liabilityService");
+const {
+  getAllLoan,
+  createLoan,
+  deleteLoanById,
+  updateLoan,
+} = require("./loan/LoanService");
+const {
+  financeSummary,
+  getLast10Transactions,
+  getEarningSummaryBetween,
+  getExpenseSummaryBetween,
+  getIncomeExpenseSummary,
+} = require("./dashboard/dashboardService");
 require("dotenv").config();
 
 const app = express();
 app.use(express.json());
 const corsOpts = {
-  origin: '*',
-  methods: [
-    'GET','POST', 'PUT', "DELETE"
-  ],
-  allowedHeaders: [
-    'Content-Type',
-  ],
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type"],
 };
 
 app.use(cors(corsOpts));
 
-  
 mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   dbName: "TrackXpenseDB",
 });
 
-// last 30 days expense 
+// last 30 days expense
 app.post("/expense/30days", async (req, res) => {
   await getLast30DaysExpense(req, res);
-})
+});
 
 app.post("/latest-transactions", async (req, res) => {
   await getLast10Transactions(req, res);
@@ -73,18 +104,21 @@ app.post("/finance-summary", async (req, res) => {
 app.post("/asset", async (req, res) => {
   await getAllAsset(req, res);
 });
-app.delete("/asset", async(req, res) => {
+app.delete("/asset", async (req, res) => {
   await deleteAsset(req, res);
 });
 app.put("/asset", async (req, res) => {
   await sellAsset(req, res);
+});
+app.post("/asset-graph-data", async (req, res) => {
+  await fetchAllAssetWithValue(req, res);
 });
 
 //get liability
 app.post("/liability", async (req, res) => {
   await getAllLiability(req, res);
 });
-app.delete("/liability", async(req, res) => {
+app.delete("/liability", async (req, res) => {
   await deleteLiability(req, res);
 });
 app.put("/liability", async (req, res) => {
@@ -95,7 +129,7 @@ app.put("/liability", async (req, res) => {
 app.post("/loan/all", async (req, res) => {
   await getAllLoan(req, res);
 });
-app.post("/loan/add", async (req, res) =>{
+app.post("/loan/add", async (req, res) => {
   await createLoan(req, res);
 });
 
@@ -194,7 +228,7 @@ app.post("/expense-type/add", async (req, res) => {
 });
 app.delete("/expense-type", async (req, res) => {
   await deleteExpenseTypeById(req, res);
-})
+});
 
 // earning type
 app.post("/earning-type/all", async (req, res) => {
@@ -205,7 +239,7 @@ app.post("/earning-type/add", async (req, res) => {
 });
 app.delete("/earning-type", async (req, res) => {
   await deleteEarningTypeById(req, res);
-})
+});
 
 // User finance
 app.post("/user-finance", async (req, res) => {

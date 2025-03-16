@@ -1,12 +1,12 @@
-const { saveAsset } = require("../asset/assetService");
 const { getNextPaymentDate } = require("../common/Utility");
 const {
   saveLiability,
-  updateLiability,
+  updateLiabilityByAmount,
 } = require("../liability/liabilityService");
 const { startOfToday } = require("date-fns");
 const Expense = require("../model/Expense");
 const ExpenseType = require("../model/ExpenseType");
+const { saveAsset } = require("../asset/assetService");
 
 async function saveExpense({
   userId,
@@ -20,7 +20,8 @@ async function saveExpense({
   quantity,
   liabilityType,
   liabilityId,
-  recurrenceType
+  recurrenceType,
+  code
 }) {
   try {
     let assetObj = null;
@@ -36,11 +37,12 @@ async function saveExpense({
         description,
         date,
         type: assetType,
+        code
       });
     } else if (type == "liability") {
       let amt = amount;
       if (liabilityType == "Loan") {
-        await updateLiability({ liabilityId, reducedAmount: amt });
+        await updateLiabilityByAmount({ liabilityId, paid: amt });
       } else {
         liabilityId = await saveLiability({
           userId,
@@ -63,7 +65,7 @@ async function saveExpense({
       medium,
       assetId: assetObj?._id,
       liabilityId,
-      recurrenceType
+      recurrenceType,
     });
     await expense.save();
     return expense._id;
@@ -98,6 +100,7 @@ async function createExpense(req, res) {
     });
     res.json({ message: "Expense recorded successfully" });
   } catch (error) {
+    console.error("Error in createExpense:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
@@ -157,7 +160,7 @@ async function deleteExpenseById(req, res) {
   try {
     const { expenseId } = req.body;
     let expense = await Expense.findById(expenseId);
-    if (expense && expense.type == 'other') {
+    if (expense && expense.type == "other") {
       let isDeleted = await Expense.deleteOne({ _id: expenseId });
       res.json({ message: "Deleted expense successfully" });
     } else {
@@ -173,14 +176,16 @@ async function deleteExpenseById(req, res) {
 async function createExpenseType(req, res) {
   try {
     const { userId, expenseType } = req.body;
-    const formattedType = expenseType.charAt(0).toUpperCase() + expenseType.slice(1).toLowerCase();
+    const formattedType =
+      expenseType.charAt(0).toUpperCase() + expenseType.slice(1).toLowerCase();
     const existingType = await ExpenseType.findOne({ userId, formattedType });
     if (existingType) {
       return res.status(400).json({ error: "Expense type already exists" });
     }
+    console.log(form);
     let expenseTypeT = new ExpenseType({
       userId,
-      expnseType: formattedType,
+      expenseType: formattedType,
     });
 
     await expenseTypeT.save();
@@ -189,7 +194,6 @@ async function createExpenseType(req, res) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
-
 
 async function getAllExpenseType(req, res) {
   try {
@@ -215,35 +219,45 @@ async function deleteExpenseTypeById(req, res) {
 
 // get recurring expense for last 30 days
 async function getLast30DaysExpense(req, res) {
-    try {
-      const {userId} = req.body;
-      const today = startOfToday();
-  
-      const recurringExpenses = await Expense.aggregate([
-        { $match: { userId, recurrenceType: { $in: ["daily", "weekly", "monthly", "yearly"]}}},
-        { $sort: { date: -1 } },
-        {
-          $group: {
-            _id: { category: "$category", recurrenceType: "$recurrenceType" },
-            latestExpense: { $first: "$$ROOT" }, 
-          },
+  try {
+    const { userId } = req.body;
+    const today = startOfToday();
+
+    const recurringExpenses = await Expense.aggregate([
+      {
+        $match: {
+          userId,
+          recurrenceType: { $in: ["daily", "weekly", "monthly", "yearly"] },
         },
-      ]);
-      const expensesWithNextPayment = recurringExpenses
-        .map(({ latestExpense }) => {
-          const nextPaymentDate = getNextPaymentDate(latestExpense.recurrenceType, latestExpense.date);
-          return nextPaymentDate >= today
-            ? { ...latestExpense, nextPaymentDate }
-            : null;
-        })
-        .filter((expense) => expense !== null) 
-        .sort((a, b) => new Date(a.nextPaymentDate) - new Date(b.nextPaymentDate)); 
-  
-      res.status(200).json(expensesWithNextPayment);
-    } catch (error) {
-      console.error("Error fetching recurring expenses:", error);
-      res.status(500).json({ message: "Server error while fetching expenses" });
-    }
+      },
+      { $sort: { date: -1 } },
+      {
+        $group: {
+          _id: { category: "$category", recurrenceType: "$recurrenceType" },
+          latestExpense: { $first: "$$ROOT" },
+        },
+      },
+    ]);
+    const expensesWithNextPayment = recurringExpenses
+      .map(({ latestExpense }) => {
+        const nextPaymentDate = getNextPaymentDate(
+          latestExpense.recurrenceType,
+          latestExpense.date
+        );
+        return nextPaymentDate >= today
+          ? { ...latestExpense, nextPaymentDate }
+          : null;
+      })
+      .filter((expense) => expense !== null)
+      .sort(
+        (a, b) => new Date(a.nextPaymentDate) - new Date(b.nextPaymentDate)
+      );
+
+    res.status(200).json(expensesWithNextPayment);
+  } catch (error) {
+    console.error("Error fetching recurring expenses:", error);
+    res.status(500).json({ message: "Server error while fetching expenses" });
+  }
 }
 
 module.exports = {
@@ -255,5 +269,5 @@ module.exports = {
   createExpenseType,
   getAllExpenseType,
   deleteExpenseTypeById,
-  getLast30DaysExpense
+  getLast30DaysExpense,
 };
