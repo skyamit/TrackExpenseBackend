@@ -250,5 +250,11 @@ app.put("/user-finance", async (req, res) => {
   await updateUserFinance(req, res);
 });
 
+// cron.schedule("35 15 * * 1-5", () => {
+//   console.log("🚀 Running stock price scraper...");
+//   scrapeAndStoreStockPrices();
+// });
+
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
