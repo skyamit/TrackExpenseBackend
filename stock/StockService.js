@@ -4,6 +4,7 @@ const Asset = require("../model/Asset");
 const Earning = require("../model/Earning");
 const Expense = require("../model/Expense");
 const Stock = require("../model/Stock");
+const { fetchStockPrices } = require("./StockPriceService");
 
 async function createStock(req, res) {
   try {
@@ -73,6 +74,27 @@ async function getAllStock(req, res) {
       .limit(pageLimit)
       .sort({ date: -1 });
 
+    const uniqueStockCode = [
+      ...new Set(
+        stockList
+          .map((stock) => stock.symbol)
+      ),
+    ];
+    const navMap = {};
+    if (uniqueStockCode.length > 0) {
+      let stockData = await fetchStockPrices(uniqueStockCode);
+      Object.assign(navMap, stockData);
+    }
+
+    stockList = stockList.map((stock) => {
+      if (navMap[stock.symbol]) {
+        return {
+          ...stock._doc,
+          lastFetchedPrice: navMap[stock.symbol],
+        };
+      }
+      return stock;
+    });
     let count = await Stock.countDocuments(searchQuery);
 
     res.json({

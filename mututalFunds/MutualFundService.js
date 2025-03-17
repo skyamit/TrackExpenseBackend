@@ -4,6 +4,7 @@ const Asset = require("../model/Asset");
 const Earning = require("../model/Earning");
 const Expense = require("../model/Expense");
 const MutualFund = require("../model/MutualFund");
+const { getMultipleFundsNAVFromCode } = require("./MutualFundNavService");
 
 async function createMutualFund(req, res) {
   try {
@@ -73,6 +74,29 @@ async function getAllMutualFund(req, res) {
       .limit(pageLimit)
       .sort({ date: -1 });
 
+      const uniqueFundCode = [
+        ...new Set(
+          mutualFundList
+            .map((fund) => fund.schemeCode)
+        ),
+      ];
+      const navMap = {};
+      if (uniqueFundCode.length > 0) {
+        let navData = await getMultipleFundsNAVFromCode(uniqueFundCode);
+        // console.log(navData)
+        navData.forEach((fund) => {
+          navMap[fund.code] = fund.nav;
+        });
+      }
+      mutualFundList = mutualFundList.map((fund) => {
+        if (navMap[fund.schemeCode]) {
+          return {
+            ...fund._doc,
+            lastFetchedPrice: navMap[fund.schemeCode],
+          };
+        }
+        return fund;
+      });
     let count = await MutualFund.countDocuments(searchQuery);
 
     res.json({
