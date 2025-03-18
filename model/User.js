@@ -5,6 +5,10 @@ const UserSchema = new mongoose.Schema({
   googleId: String,
   name: String,
   email: String,
+  streakCount: { type: Number, default: 0 },
+  lastLoggedDate: { type: Date },
+  longestStreak: { type: Number, default: 0 },
+  rewards: [{ type: String }]
 });
 
 module.exports = mongoose.model("User", UserSchema);

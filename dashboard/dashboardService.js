@@ -2,7 +2,6 @@ const { subMonths, startOfMonth, format, endOfMonth } = require("date-fns");
 const Earning = require("../model/Earning");
 const Expense = require("../model/Expense");
 const UserFinance = require("../model/UserFinance");
-const { default: mongoose } = require("mongoose");
 
 async function financeSummary(req, res) {
   try {

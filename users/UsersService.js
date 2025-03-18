@@ -61,5 +61,23 @@ async function updateUserFinance(req, res) {
   }
 }
 
+async function streakUpdate(req, res) {
+  const {userId} = req.body;
+  const user = await User.findById(userId);
+  const today = new Date().setHours(0, 0, 0, 0);
+  const lastLogged = user.lastLoggedDate ? new Date(user.lastLoggedDate).setHours(0, 0, 0, 0) : null;
+  if (lastLogged !== today) {
+    if (lastLogged === today - 86400000) {
+      user.streakCount += 1;
+    } else {
+      user.streakCount = 1; 
+    }
+    user.longestStreak = Math.max(user.longestStreak, user.streakCount);
+    user.lastLoggedDate = today;
+    await user.save();
+  }
 
-module.exports = { loginUser, getUserFinance, updateUserFinance };
+  res.json({ streakCount: user.streakCount, longestStreak: user.longestStreak });
+}
+
+module.exports = { loginUser, getUserFinance, updateUserFinance, streakUpdate };

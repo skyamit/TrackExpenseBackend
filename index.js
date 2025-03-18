@@ -5,6 +5,7 @@ const {
   loginUser,
   updateUserFinance,
   getUserFinance,
+  streakUpdate,
 } = require("./users/UsersService");
 const {
   createExpense,
@@ -145,7 +146,9 @@ app.put("/loan", async (req, res) => {
 app.post("/login", async (req, res) => {
   await loginUser(req, res);
 });
-
+app.post("/streak", async (req, res) => {
+  await streakUpdate(req, res);
+})
 // send mai
 app.post("/contact-us", async (req, res) => {
   await contactUs(req, res);
