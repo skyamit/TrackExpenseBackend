@@ -140,7 +140,9 @@ async function getAllAsset(req, res) {
     const navMap = {};
     if (uniqueStockCode.length > 0) {
       let stockData = await fetchStockPrices(uniqueStockCode);
-      Object.assign(navMap, stockData);
+      stockData.forEach((stock) => {
+        navMap[stock.code] = stock.nav;
+      });
     }
     if (uniqueFundCode.length > 0) {
       let navData = await getMultipleFundsNAVFromCode(uniqueFundCode);
@@ -200,7 +202,9 @@ async function fetchAllAssetWithValue(req, res) {
     const navMap = {};
     if (uniqueStockCode.length > 0) {
       let stockData = await fetchStockPrices(uniqueStockCode);
-      Object.assign(navMap, stockData);
+      stockData.forEach((stock) => {
+        navMap[stock.code] = stock.nav;
+      });
     }
     if (uniqueFundCode.length > 0) {
       let navData = await getMultipleFundsNAVFromCode(uniqueFundCode);

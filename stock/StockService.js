@@ -83,14 +83,17 @@ async function getAllStock(req, res) {
     const navMap = {};
     if (uniqueStockCode.length > 0) {
       let stockData = await fetchStockPrices(uniqueStockCode);
-      Object.assign(navMap, stockData);
+      stockData.forEach((stock) => {
+        navMap[stock.code] = stock;
+      });
     }
 
     stockList = stockList.map((stock) => {
       if (navMap[stock.symbol]) {
         return {
           ...stock._doc,
-          lastFetchedPrice: navMap[stock.symbol],
+          lastFetchedPrice: navMap[stock.symbol].currentPrice,
+          lastUpdated: navMap[stock.symbol].lastUpdated
         };
       }
       return stock;

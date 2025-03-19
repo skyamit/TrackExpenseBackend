@@ -9,11 +9,16 @@ async function fetchStockPrice2(symbol) {
 
     const url = `https://www.bseindia.com/stock-share-price/stockreach_financials.aspx?scripcode=${searchData}`;
 
-    const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
     const page = await browser.newPage();
 
     // Set a user-agent to avoid getting blocked
-    await page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36");
+    await page.setUserAgent(
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
+    );
 
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 10000 });
 
@@ -42,15 +47,18 @@ async function fetchStockPrices(symbols) {
   const today = new Date().toISOString().split("T")[0];
   console.log("Inside fetchStockPrices");
 
-  const priceMap = {};
+  const priceData = [];
 
   await Promise.all(
     symbols.map(async (symbol) => {
       let stockData = await StockPrice.findOne({ symbol, date: today });
 
       if (stockData) {
-        console.log(`Returning cached price for ${symbol}`);
-        priceMap[symbol] = stockData.currentPrice;
+        let stockObj = stockData.toObject();
+        stockObj['code'] = stockData.symbol;
+        stockObj['lastUpdated'] = stockData.updatedAt;
+        stockObj['nav'] = stockData.currentPrice;
+        priceData.push(stockObj);
         return;
       }
 
@@ -67,16 +75,21 @@ async function fetchStockPrices(symbols) {
         currentPrice: price,
       };
 
-      await StockPrice.findOneAndUpdate({ symbol, date: today }, stockData, {
+      await StockPrice.findOneAndUpdate({ symbol }, stockData, {
         upsert: true,
         new: true,
       });
 
-      priceMap[symbol] = price;
+      let stockObj = stockData.toObject();
+
+      stockObj['code'] = stockData.symbol;
+      stockObj['lastUpdated'] = stockData.updatedAt;
+      stockObj['nav'] = stockData.currentPrice;
+      priceData.push(stockObj);
     })
   );
 
-  return priceMap;
+  return priceData;
 }
 
 module.exports = { fetchStockPrices };

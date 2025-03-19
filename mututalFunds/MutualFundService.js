@@ -85,14 +85,15 @@ async function getAllMutualFund(req, res) {
         let navData = await getMultipleFundsNAVFromCode(uniqueFundCode);
         // console.log(navData)
         navData.forEach((fund) => {
-          navMap[fund.code] = fund.nav;
+          navMap[fund.code] = fund;
         });
       }
       mutualFundList = mutualFundList.map((fund) => {
         if (navMap[fund.schemeCode]) {
           return {
             ...fund._doc,
-            lastFetchedPrice: navMap[fund.schemeCode],
+            lastFetchedPrice: navMap[fund.schemeCode].nav,
+            lastUpdated: navMap[fund.schemeCode].lastUpdated
           };
         }
         return fund;
