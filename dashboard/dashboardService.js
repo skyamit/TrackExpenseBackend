@@ -66,12 +66,12 @@ async function getLast10Transactions(req, res) {
     }
 
     const expenses = await Expense.find({ userId })
-      .sort({ date: -1 })
+      .sort({ date: -1, _id: -1 })
       .limit(10)
       .select("amount category description date");
 
     const earnings = await Earning.find({ userId })
-      .sort({ date: -1 })
+      .sort({ date: -1, _id: -1 })
       .limit(10)
       .select("amount source description date");
 
@@ -79,7 +79,12 @@ async function getLast10Transactions(req, res) {
       ...expenses.map((e) => ({ ...e.toObject(), type: "expense" })),
       ...earnings.map((e) => ({ ...e.toObject(), type: "earning" })),
     ]
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .sort((a, b) => {
+        const dateDiff = new Date(b.date) - new Date(a.date);
+        return dateDiff !== 0
+          ? dateDiff
+          : b._id.toString().localeCompare(a._id.toString());
+      })
       .slice(0, 10);
 
     res.json(transactions);
