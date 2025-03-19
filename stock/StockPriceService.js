@@ -80,7 +80,7 @@ async function fetchStockPrices(symbols) {
         new: true,
       });
 
-      let stockObj = stockData.toObject();
+      let stockObj = stockData;
 
       stockObj['code'] = stockData.symbol;
       stockObj['lastUpdated'] = stockData.updatedAt;
