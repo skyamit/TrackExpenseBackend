@@ -120,7 +120,7 @@ async function getAllAsset(req, res) {
     let assetList = await Asset.find(searchQuery)
       .skip(pageOffset)
       .limit(pageLimit)
-      .sort({ date: -1 });
+      .sort({ date: -1, _id: -1 });
 
     const uniqueFundCode = [
       ...new Set(
@@ -182,7 +182,7 @@ async function fetchAllAssetWithValue(req, res) {
       userId: userId,
     };
 
-    let assetList = await Asset.find(searchQuery).sort({ date: -1 });
+    let assetList = await Asset.find(searchQuery).sort({ date: -1 , _id: -1});
 
     const uniqueFundCode = [
       ...new Set(

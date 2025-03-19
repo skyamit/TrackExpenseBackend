@@ -72,7 +72,7 @@ async function getAllMutualFund(req, res) {
     let mutualFundList = await MutualFund.find(searchQuery)
       .skip(pageOffset)
       .limit(pageLimit)
-      .sort({ date: -1 });
+      .sort({ date: -1, _id: -1 });
 
       const uniqueFundCode = [
         ...new Set(

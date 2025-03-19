@@ -70,7 +70,7 @@ async function getAllLoan(req, res) {
     let loanList = await Loan.find(searchQuery)
       .skip(pageOffset)
       .limit(pageLimit)
-      .sort({ date: -1 });
+      .sort({ date: -1, _id: -1 });
 
     let count = await Loan.countDocuments(searchQuery);
 

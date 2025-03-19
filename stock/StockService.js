@@ -72,7 +72,7 @@ async function getAllStock(req, res) {
     let stockList = await Stock.find(searchQuery)
       .skip(pageOffset)
       .limit(pageLimit)
-      .sort({ date: -1 });
+      .sort({ date: -1, _id: -1 });
 
     const uniqueStockCode = [
       ...new Set(
