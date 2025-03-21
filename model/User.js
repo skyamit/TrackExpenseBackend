@@ -8,6 +8,7 @@ const UserSchema = new mongoose.Schema({
   streakCount: { type: Number, default: 0 },
   lastLoggedDate: { type: Date },
   longestStreak: { type: Number, default: 0 },
+  diamond: {type:Number, default:0},
   rewards: [{ type: String }]
 });
 

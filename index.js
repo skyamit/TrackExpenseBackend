@@ -7,6 +7,7 @@ const {
   updateUserFinance,
   getUserFinance,
   streakUpdate,
+  streakClaim,
 } = require("./users/UsersService");
 const {
   createExpense,
@@ -150,6 +151,9 @@ app.post("/login", async (req, res) => {
 app.post("/streak", async (req, res) => {
   await streakUpdate(req, res);
 })
+app.post("/streak/claim", async (req, res) => {
+  await streakClaim(req, res);
+});
 // send mai
 app.post("/contact-us", async (req, res) => {
   await contactUs(req, res);

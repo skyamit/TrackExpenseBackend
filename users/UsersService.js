@@ -77,7 +77,32 @@ async function streakUpdate(req, res) {
     await user.save();
   }
 
-  res.json({ streakCount: user.streakCount, longestStreak: user.longestStreak });
+  res.json({ streakCount: user.streakCount, longestStreak: user.longestStreak, rewards: user.rewards, diamond: user.diamond });
 }
 
-module.exports = { loginUser, getUserFinance, updateUserFinance, streakUpdate };
+async function streakClaim(req, res) {
+  try {
+    const { userId, reward, title } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (!user.rewards.includes(title)) {
+      user.diamond = Number(user.diamond) + Number(reward); // Ensure both are numbers
+      user.rewards.push(title);
+
+      await user.save();
+      return res.json({ message: "Reward claimed successfully" });
+    } else {
+      return res.status(400).json({ error: "Reward already claimed" });
+    }
+  } catch (error) {
+    console.error("Error claiming reward:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
+
+module.exports = {streakClaim, loginUser, getUserFinance, updateUserFinance, streakUpdate };
