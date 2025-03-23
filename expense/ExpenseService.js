@@ -265,7 +265,6 @@ async function createExpenseType(req, res) {
     if (existingType) {
       return res.status(400).json({ error: "Expense type already exists" });
     }
-    console.log(form);
     let expenseTypeT = new ExpenseType({
       userId,
       expenseType: formattedType,
@@ -274,6 +273,7 @@ async function createExpenseType(req, res) {
     await expenseTypeT.save();
     res.json({ message: "Created expense type successfully" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
