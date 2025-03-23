@@ -1,7 +1,5 @@
 const { updateAsset } = require("../asset/assetService");
-const {
-  saveLiability,
-} = require("../liability/liabilityService");
+const { saveLiability } = require("../liability/liabilityService");
 const Earning = require("../model/Earning");
 const EarningType = require("../model/EarningType");
 
@@ -65,7 +63,15 @@ async function createEarning(req, res) {
   try {
     const { userId, amount, type, source, description, date, medium } =
       req.body;
-    await saveEarning({ userId, amount, type, source, description, date, medium });
+    await saveEarning({
+      userId,
+      amount,
+      type,
+      source,
+      description,
+      date,
+      medium,
+    });
     res.json({ message: "Earning recorded successfully" });
   } catch (error) {
     console.log(error);
@@ -129,7 +135,7 @@ async function deleteEarningById(req, res) {
     const { earningId } = req.body;
     let earning = await Earning.findById(earningId);
     // console.log(earning._id)
-    if (earning && earning.type == 'other') {
+    if (earning && earning.type == "other") {
       let isDeleted = await Earning.deleteOne({ _id: earningId });
       res.json({ message: "Deleted earning successfully" });
     } else {
@@ -144,12 +150,13 @@ async function deleteEarningById(req, res) {
 async function createEarningType(req, res) {
   try {
     const { userId, earningType } = req.body;
-    const formattedType = earningType.charAt(0).toUpperCase() + earningType.slice(1).toLowerCase();
+    const formattedType =
+      earningType.charAt(0).toUpperCase() + earningType.slice(1).toLowerCase();
     const existingType = await EarningType.findOne({ userId, formattedType });
     if (existingType) {
       return res.status(400).json({ error: "Earning type already exists" });
     }
-    console.log(formattedType)
+    console.log(formattedType);
     let earningTypeT = new EarningType({
       userId,
       earningType: formattedType,
@@ -184,7 +191,93 @@ async function deleteEarningTypeById(req, res) {
   }
 }
 
+async function getEarningGraphDataLast12Months(req, res) {
+  try {
+    const { userId } = req.body;
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11, 1);
+    const earnings = await Earning.aggregate([
+      {
+        $match: {
+          userId: userId,
+          date: { $gte: twelveMonthsAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$date" },
+            month: { $month: "$date" },
+          },
+          totalEarning: { $sum: "$amount" },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 },
+      },
+    ]);
+
+    let data = earnings.map((e) => ({
+      month: `${e._id.year}-${String(e._id.month).padStart(2, "0")}`,
+      totalEarning: e.totalEarning,
+    }));
+    res.json({
+      data,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
+async function getEarningGraphDataLast30Days(req, res) {
+  try {
+    const { userId } = req.body;
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    const last30Days = new Date();
+    last30Days.setDate(today.getDate() - 30);
+    last30Days.setHours(0, 0, 0, 0);
+
+    const earnings = await Earning.aggregate([
+      {
+        $match: {
+          userId: userId,
+          date: { $gte: last30Days, $lte: today },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$date" },
+            month: { $month: "$date" },
+            day: { $dayOfMonth: "$date" },
+          },
+          totalEarning: { $sum: "$amount" },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 },
+      },
+    ]);
+
+    let data = earnings.map((e) => ({
+      date: `${e._id.year}-${String(e._id.month).padStart(2, "0")}-${String(
+        e._id.day
+      ).padStart(2, "0")}`,
+      totalEarning: e.totalEarning,
+    }));
+    res.json({
+      data,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
 module.exports = {
+  getEarningGraphDataLast30Days,
+  getEarningGraphDataLast12Months,
   saveEarning,
   updateEarning,
   createEarning,

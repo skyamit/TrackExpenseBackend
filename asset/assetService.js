@@ -1,7 +1,10 @@
 const Asset = require("../model/Asset");
 const Earning = require("../model/Earning");
 const Expense = require("../model/Expense");
-const { getMultipleFundsNAVFromCode } = require("../mututalFunds/MutualFundNavService");
+const Liability = require("../model/Liability");
+const {
+  getMultipleFundsNAVFromCode,
+} = require("../mututalFunds/MutualFundNavService");
 const { fetchStockPrices } = require("../stock/StockPriceService");
 
 async function saveAsset({
@@ -182,8 +185,7 @@ async function fetchAllAssetWithValue(req, res) {
       userId: userId,
     };
 
-    let assetList = await Asset.find(searchQuery).sort({ date: -1 , _id: -1});
-
+    let assetList = await Asset.find(searchQuery).sort({ date: -1, _id: -1 });
     const uniqueFundCode = [
       ...new Set(
         assetList
@@ -230,6 +232,210 @@ async function fetchAllAssetWithValue(req, res) {
   }
 }
 
+async function assetLiabilitySummaryTotal(req, res) {
+  try {
+    let { userId } = req.body;
+
+    const mutualFundCodes = await Asset.distinct("code", {
+      userId: userId,
+      type: "Mutual Fund",
+      code: { $ne: null },
+    });
+
+    const stockCodes = await Asset.distinct("code", {
+      userId: userId,
+      type: "Stock",
+      code: { $ne: null },
+    });
+
+    const navMap = {};
+    if (stockCodes.length > 0) {
+      let stockData = await fetchStockPrices(stockCodes);
+      stockData.forEach((stock) => {
+        navMap[stock.code] = stock.nav;
+      });
+    }
+    if (mutualFundCodes.length > 0) {
+      let navData = await getMultipleFundsNAVFromCode(mutualFundCodes);
+      navData.forEach((fund) => {
+        navMap[fund.code] = fund.nav;
+      });
+    }
+
+    const totalOtherAssets = await Asset.aggregate([
+      {
+        $match: {
+          userId,
+          type: "other",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$value" },
+        },
+      },
+    ]);
+    const totalOther =
+      totalOtherAssets.length > 0 ? totalOtherAssets[0].total : 0;
+
+    const navValues = await Asset.aggregate([
+      {
+        $match: {
+          userId,
+          type: { $ne: "other" },
+        },
+      },
+      {
+        $group: {
+          _id: "$code",
+          quantity: { $sum: "$value" },
+        },
+      },
+    ]);
+
+    let totalMappedAssets = 0;
+    navValues.forEach(({ _id, quantity }) => {
+      if (!_id) totalMappedAssets += quantity;
+      else totalMappedAssets += navMap[_id] * quantity;
+    });
+
+    const totalAssets = totalOther + totalMappedAssets;
+
+    const liabilities = await Liability.aggregate([
+      { $match: { userId: userId } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$remainingAmount" },
+        },
+      },
+    ]);
+
+    const totalLiability = liabilities.length ? liabilities[0].total : 0;
+
+    res.json({
+      totalAssets,
+      totalLiability,
+    });
+  } catch (error) {
+    console.error("Error fetching finance summary:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+async function assetLiabilitySummary(req, res) {
+  try {
+    let { startDate, endDate, userId } = req.body;
+
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ message: "Start date and end date are required." });
+    }
+
+    startDate = new Date(startDate);
+    endDate = new Date(endDate);
+
+    const maxDays = 60 * 24 * 60 * 60 * 1000;
+    if (endDate - startDate > maxDays) {
+      return res
+        .status(400)
+        .json({ message: "Date range cannot exceed 60 days." });
+    }
+
+    const mutualFundCodes = await Asset.distinct("code", {
+      userId: userId,
+      type: "Mutual Fund",
+      code: { $ne: null },
+    });
+
+    const stockCodes = await Asset.distinct("code", {
+      userId: userId,
+      type: "Stock",
+      code: { $ne: null },
+    });
+
+    const navMap = {};
+    if (stockCodes.length > 0) {
+      let stockData = await fetchStockPrices(stockCodes);
+      stockData.forEach((stock) => {
+        navMap[stock.code] = stock.nav;
+      });
+    }
+    if (mutualFundCodes.length > 0) {
+      let navData = await getMultipleFundsNAVFromCode(mutualFundCodes);
+      navData.forEach((fund) => {
+        navMap[fund.code] = fund.nav;
+      });
+    }
+
+    const totalOtherAssetsInRange = await Asset.aggregate([
+      {
+        $match: {
+          userId,
+          date: { $gte: startDate, $lte: endDate },
+          type: "other",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$value" },
+        },
+      },
+    ]);
+    const totalOtherInRange =
+      totalOtherAssetsInRange.length > 0 ? totalOtherAssetsInRange[0].total : 0;
+
+    const navValuesInRange = await Asset.aggregate([
+      {
+        $match: {
+          userId,
+          date: { $gte: startDate, $lte: endDate },
+          type: { $ne: "other" },
+        },
+      },
+      {
+        $group: {
+          _id: "$code",
+          quantity: { $sum: "$value" },
+        },
+      },
+    ]);
+
+    let totalMappedAssetsInRange = 0;
+    navValuesInRange.forEach(({ _id, quantity }) => {
+      if (!_id) totalMappedAssetsInRange += quantity;
+      else totalMappedAssetsInRange += navMap[_id] * quantity;
+    });
+
+    const totalAssetsInRange = totalOtherInRange + totalMappedAssetsInRange;
+
+    const liabilitiesInRange = await Liability.aggregate([
+      { $match: { userId: userId, date: { $gte: startDate, $lte: endDate } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$remainingAmount" },
+        },
+      },
+    ]);
+
+    const totalLiabilityInRange = liabilitiesInRange.length
+      ? liabilitiesInRange[0].total
+      : 0;
+
+    res.json({
+      totalAssetsBtw: totalAssetsInRange,
+      totalLiabilityBtw: totalLiabilityInRange,
+    });
+  } catch (error) {
+    console.error("Error fetching finance summary:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
 module.exports = {
   getAllAsset,
   deleteAsset,
@@ -237,4 +443,6 @@ module.exports = {
   fetchAllAssetWithValue,
   saveAsset,
   updateAsset,
+  assetLiabilitySummary,
+  assetLiabilitySummaryTotal,
 };

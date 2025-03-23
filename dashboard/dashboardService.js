@@ -109,17 +109,10 @@ async function getEarningSummaryBetween(req, res) {
       { $sort: { totalAmount: -1 } },
     ]);
 
-    const totalEarnings = earnings.reduce(
-      (sum, item) => sum + item.totalAmount,
-      0
-    );
-
     let groupedEarnings = [];
     let othersTotal = 0;
 
     earnings.forEach((entry, index) => {
-      const percentage = (entry.totalAmount / totalEarnings) * 100;
-
       if (index < 5) {
         groupedEarnings.push(entry);
       } else {

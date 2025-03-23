@@ -1,6 +1,8 @@
 const Earning = require("../model/Earning");
 const Expense = require("../model/Expense");
 const Liability = require("../model/Liability");
+const Loan = require("../model/Loan");
+const UserFinance = require("../model/UserFinance");
 
 async function saveLiability({
   userId,
@@ -133,10 +135,107 @@ async function getAllLiability(req, res) {
   }
 }
 
+async function liabilitySummary(req, res) {
+  try {
+    let { startDate, endDate, userId } = req.body;
+
+    if (!startDate || !endDate) {
+      return res
+        .status(400)
+        .json({ message: "Start date and end date are required." });
+    }
+
+    startDate = new Date(startDate);
+    endDate = new Date(endDate);
+
+    const maxDays = 60 * 24 * 60 * 60 * 1000;
+    if (endDate - startDate > maxDays) {
+      return res
+        .status(400)
+        .json({ message: "Date range cannot exceed 60 days." });
+    }
+
+    const loans = await Loan.aggregate([
+      { $match: { userId: userId, date: { $gte: startDate, $lte: endDate } } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$remainingAmount" },
+        },
+      },
+    ]);
+
+    const totalLoan = loans.length ? loans[0].total : 0;
+
+    res.json({
+      totalLoan,
+      totalLiability: totalLoan,
+    });
+  } catch (error) {
+    console.error("Error fetching finance summary:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+async function getLoanBetween(req, res) {
+  try {
+    const { userId } = req.body;
+
+    const loan = await Loan.aggregate([
+      {
+        $match: {
+          userId,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          remainingAmount: 1,
+        },
+      },
+      {
+        $group: {
+          _id: "$_id",
+          name: { $first: "$name" },
+          remainingAmount: { $first: "$remainingAmount" },
+        },
+      },
+      { $sort: { remainingAmount: -1 } },
+    ]);
+
+    let groupedLoans = [];
+    let othersTotal = 0;
+
+    loan.forEach((entry, index) => {
+      if (index < 5) {
+        groupedLoans.push(entry);
+      } else {
+        othersTotal += entry.remainingAmount;
+      }
+    });
+
+    if (othersTotal > 0) {
+      groupedLoans.push({
+        _id: "Others",
+        name: "Others",
+        remainingAmount: othersTotal,
+      });
+    }
+
+    res.json(groupedLoans);
+  } catch (error) {
+    console.error("Error fetching stock data:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
 module.exports = {
   getAllLiability,
   saveLiability,
   deleteLiability,
   updateLiability,
   updateLiabilityByAmount,
+  liabilitySummary,
+  getLoanBetween,
 };

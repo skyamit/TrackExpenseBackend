@@ -21,7 +21,7 @@ async function saveExpense({
   liabilityType,
   liabilityId,
   recurrenceType,
-  code
+  code,
 }) {
   try {
     let assetObj = null;
@@ -37,7 +37,7 @@ async function saveExpense({
         description,
         date,
         type: assetType,
-        code
+        code,
       });
     } else if (type == "liability") {
       let amt = amount;
@@ -133,7 +133,6 @@ async function getAllExpense(req, res) {
       ];
     }
 
-    // let query = { userId: userId };
     let expenseList = await Expense.find(searchQuery)
       .skip(pageOffset)
       .limit(pageLimit)
@@ -150,6 +149,90 @@ async function getAllExpense(req, res) {
     });
   } catch (error) {
     console.log(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
+async function getExpenseGraphDataLast12Months(req, res) {
+  try {
+    const { userId } = req.body;
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 11, 1);
+    const expenses = await Expense.aggregate([
+      {
+        $match: {
+          userId: userId,
+          date: { $gte: twelveMonthsAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$date" },
+            month: { $month: "$date" },
+          },
+          totalExpense: { $sum: "$amount" },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 },
+      },
+    ]);
+
+    let data = expenses.map((e) => ({
+      month: `${e._id.year}-${String(e._id.month).padStart(2, "0")}`,
+      totalExpense: e.totalExpense,
+    }));
+    res.json({
+      data,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
+async function getExpenseGraphDataLast30Days(req, res) {
+  try {
+    const { userId } = req.body;
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    const last30Days = new Date();
+    last30Days.setDate(today.getDate() - 30);
+    last30Days.setHours(0, 0, 0, 0);
+
+    const expenses = await Expense.aggregate([
+      {
+        $match: {
+          userId: userId,
+          date: { $gte: last30Days, $lte: today },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$date" },
+            month: { $month: "$date" },
+            day: { $dayOfMonth: "$date" },
+          },
+          totalExpense: { $sum: "$amount" },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 },
+      },
+    ]);
+
+    let data = expenses.map((e) => ({
+      date: `${e._id.year}-${String(e._id.month).padStart(2, "0")}-${String(
+        e._id.day
+      ).padStart(2, "0")}`,
+      totalExpense: e.totalExpense,
+    }));
+    res.json({
+      data,
+    });
+  } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
@@ -217,7 +300,6 @@ async function deleteExpenseTypeById(req, res) {
   }
 }
 
-// get recurring expense for last 30 days
 async function getLast30DaysExpense(req, res) {
   try {
     const { userId } = req.body;
@@ -270,4 +352,6 @@ module.exports = {
   getAllExpenseType,
   deleteExpenseTypeById,
   getLast30DaysExpense,
+  getExpenseGraphDataLast30Days,
+  getExpenseGraphDataLast12Months
 };

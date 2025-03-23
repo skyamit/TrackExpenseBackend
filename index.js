@@ -18,6 +18,8 @@ const {
   getAllExpenseType,
   createExpenseType,
   getLast30DaysExpense,
+  getExpenseGraphDataLast12Months,
+  getExpenseGraphDataLast30Days,
 } = require("./expense/ExpenseService");
 const {
   createEarning,
@@ -27,6 +29,8 @@ const {
   getAllEarningType,
   createEarningType,
   deleteEarningTypeById,
+  getEarningGraphDataLast12Months,
+  getEarningGraphDataLast30Days,
 } = require("./earning/EarningService");
 const {
   createMutualFund,
@@ -41,12 +45,22 @@ const {
   updateStock,
 } = require("./stock/StockService");
 const { contactUs } = require("./mail/Mailservice");
-const { getAllAsset, deleteAsset, sellAsset, fetchNavForAllMF, fetchAllAssetWithValue } = require("./asset/assetService");
+const {
+  getAllAsset,
+  deleteAsset,
+  sellAsset,
+  fetchNavForAllMF,
+  fetchAllAssetWithValue,
+  assetLiabilitySummary,
+  assetLiabilitySummaryTotal,
+} = require("./asset/assetService");
 const {
   getAllLiability,
   createLiability,
   deleteLiability,
   updateLiability,
+  liabilitySummary,
+  getLoanBetween,
 } = require("./liability/liabilityService");
 const {
   getAllLoan,
@@ -61,6 +75,11 @@ const {
   getExpenseSummaryBetween,
   getIncomeExpenseSummary,
 } = require("./dashboard/dashboardService");
+const {
+  investmentSummary,
+  getStockBetween,
+  getMutualFundBetween,
+} = require("./investments/InvestmentService");
 require("dotenv").config();
 
 const app = express();
@@ -103,6 +122,19 @@ app.post("/finance-summary", async (req, res) => {
   await financeSummary(req, res);
 });
 
+// investments
+app.post("/investment-summary", async (req, res) => {
+  await investmentSummary(req, res);
+});
+
+app.post("/stock-summary", async (req, res) => {
+  await getStockBetween(req, res);
+});
+
+app.post("/mutual-fund-summary", async (req, res) => {
+  await getMutualFundBetween(req, res);
+});
+
 // get Asset
 app.post("/asset", async (req, res) => {
   await getAllAsset(req, res);
@@ -127,6 +159,9 @@ app.delete("/liability", async (req, res) => {
 app.put("/liability", async (req, res) => {
   await updateLiability(req, res);
 });
+app.post("/liability-summary", async (req, res) => {
+  await liabilitySummary(req, res);
+});
 
 // get loan
 app.post("/loan/all", async (req, res) => {
@@ -143,6 +178,9 @@ app.delete("/loan", async (req, res) => {
 app.put("/loan", async (req, res) => {
   await updateLoan(req, res);
 });
+app.post("/loan-summary", async (req, res) => {
+  await getLoanBetween(req, res);
+});
 
 // user resource
 app.post("/login", async (req, res) => {
@@ -150,7 +188,7 @@ app.post("/login", async (req, res) => {
 });
 app.post("/streak", async (req, res) => {
   await streakUpdate(req, res);
-})
+});
 app.post("/streak/claim", async (req, res) => {
   await streakClaim(req, res);
 });
@@ -176,6 +214,14 @@ app.delete("/expense", async (req, res) => {
   await deleteExpenseById(req, res);
 });
 
+app.post("/expense-graph-months", async (req, res) => {
+  await getExpenseGraphDataLast12Months(req, res);
+});
+
+app.post("/expense-graph-days", async (req, res) => {
+  await getExpenseGraphDataLast30Days(req, res);
+});
+
 // earning resource
 app.post("/earning/add", async (req, res) => {
   await createEarning(req, res);
@@ -191,6 +237,14 @@ app.post("/earning/all", async (req, res) => {
 
 app.delete("/earning", async (req, res) => {
   await deleteEarningById(req, res);
+});
+
+app.post("/earning-graph-months", async (req, res) => {
+  await getEarningGraphDataLast12Months(req, res);
+});
+
+app.post("/earning-graph-days", async (req, res) => {
+  await getEarningGraphDataLast30Days(req, res);
 });
 
 // mutual fund
@@ -258,6 +312,13 @@ app.put("/user-finance", async (req, res) => {
   await updateUserFinance(req, res);
 });
 
+app.post("/asset-liability-summary", async (req, res) => {
+  await assetLiabilitySummary(req, res);
+});
+
+app.post("/asset-liability-summary-total", async (req, res) => {
+  await assetLiabilitySummaryTotal(req, res);
+});
 // cron.schedule("0 23 * * *", () => {
 //   console.log("🚀 Running stock price scraper...");
 //   scrapeAndStoreStockPrices();
