@@ -79,6 +79,7 @@ const {
   investmentSummary,
   getStockBetween,
   getMutualFundBetween,
+  getStockMutualFundSummaryTotal,
 } = require("./investments/InvestmentService");
 require("dotenv").config();
 
@@ -134,6 +135,10 @@ app.post("/stock-summary", async (req, res) => {
 app.post("/mutual-fund-summary", async (req, res) => {
   await getMutualFundBetween(req, res);
 });
+
+app.post("/investment/total", async (req, res) => {
+  await getStockMutualFundSummaryTotal(req, res);
+})
 
 // get Asset
 app.post("/asset", async (req, res) => {

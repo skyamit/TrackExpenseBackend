@@ -165,11 +165,21 @@ async function liabilitySummary(req, res) {
       },
     ]);
 
+    const liability = await Liability.aggregate([
+      { $match: { userId: userId } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$remainingAmount" },
+        },
+      },
+    ]);
+    const totalLiability = liability.length ? liability[0].total : 0;
     const totalLoan = loans.length ? loans[0].total : 0;
 
     res.json({
       totalLoan,
-      totalLiability: totalLoan,
+      totalLiability
     });
   } catch (error) {
     console.error("Error fetching finance summary:", error);

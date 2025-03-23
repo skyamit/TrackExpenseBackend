@@ -1,6 +1,10 @@
 const MutualFund = require("../model/MutualFund");
 const Stock = require("../model/Stock");
 const UserFinance = require("../model/UserFinance");
+const {
+  getMultipleFundsNAVFromCode,
+} = require("../mututalFunds/MutualFundNavService");
+const { fetchStockPrices } = require("../stock/StockPriceService");
 
 async function investmentSummary(req, res) {
   try {
@@ -99,7 +103,11 @@ async function getStockBetween(req, res) {
     });
 
     if (othersTotal > 0) {
-      groupedStocks.push({ _id: "Others", description: "Others", totalAmount: othersTotal });
+      groupedStocks.push({
+        _id: "Others",
+        description: "Others",
+        totalAmount: othersTotal,
+      });
     }
 
     res.json(groupedStocks);
@@ -110,56 +118,139 @@ async function getStockBetween(req, res) {
 }
 
 async function getMutualFundBetween(req, res) {
-    try {
-      const { userId } = req.body;
-  
-      const mutualFund = await MutualFund.aggregate([
+  try {
+    const { userId } = req.body;
+
+    const mutualFund = await MutualFund.aggregate([
+      {
+        $match: {
+          userId,
+        },
+      },
+      {
+        $project: {
+          schemeCode: 1,
+          name: 1,
+          totalAmount: { $multiply: ["$price", "$quantity"] },
+        },
+      },
+      {
+        $group: {
+          _id: "$schemeCode",
+          name: { $first: "$name" },
+          totalAmount: { $sum: "$totalAmount" },
+        },
+      },
+      { $sort: { totalAmount: -1 } },
+    ]);
+
+    let groupedMutualFunds = [];
+    let othersTotal = 0;
+
+    mutualFund.forEach((entry, index) => {
+      if (index < 5) {
+        groupedMutualFunds.push(entry);
+      } else {
+        othersTotal += entry.totalAmount;
+      }
+    });
+
+    if (othersTotal > 0) {
+      groupedMutualFunds.push({
+        _id: "Others",
+        name: "Others",
+        totalAmount: othersTotal,
+      });
+    }
+
+    res.json(groupedMutualFunds);
+  } catch (error) {
+    console.error("Error fetching stock data:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+}
+
+async function getStockMutualFundSummaryTotal(req, res) {
+  try {
+    let { userId } = req.body;
+
+    const mutualFundCodes = await MutualFund.distinct("schemeCode", {
+      userId: userId,
+      schemeCode: { $ne: null },
+    });
+
+    const stockCodes = await Stock.distinct("symbol", {
+      userId: userId,
+      symbol: { $ne: null },
+    });
+
+    const navMap = {};
+    if (stockCodes.length > 0) {
+      let stockData = await fetchStockPrices(stockCodes);
+      stockData.forEach((stock) => {
+        navMap[stock.code] = stock.nav;
+      });
+    }
+    if (mutualFundCodes.length > 0) {
+      let navData = await getMultipleFundsNAVFromCode(mutualFundCodes);
+      navData.forEach((fund) => {
+        navMap[fund.code] = fund.nav;
+      });
+    }
+
+    const mutualFunds = await MutualFund.aggregate([
+      {
+        $match: {
+          userId,
+        },
+      },
+      {
+        $group: {
+          _id: "$schemeCode",
+          quantity: { $sum: "$quantity" },
+        },
+      },
+    ]);
+
+    let totalMutualFund = 0;
+    mutualFunds.forEach(({ _id, quantity }) => {
+      if (!_id) totalMutualFund += quantity;
+      else totalMutualFund += navMap[_id] * quantity;
+    });
+
+    const stocks = await Stock.aggregate([
         {
           $match: {
             userId,
           },
         },
         {
-          $project: {
-            schemeCode: 1,
-            name: 1,
-            totalAmount: { $multiply: ["$price", "$quantity"] },
-          },
-        },
-        {
           $group: {
-            _id: "$schemeCode",
-            name : {$first : "$name"},
-            totalAmount: { $sum: "$totalAmount" },
+            _id: "$symbol",
+            quantity: { $sum: "$quantity" },
           },
         },
-        { $sort: { totalAmount: -1 } },
       ]);
   
-      let groupedMutualFunds = [];
-      let othersTotal = 0;
-  
-      mutualFund.forEach((entry, index) => {
-        if (index < 5) {
-          groupedMutualFunds.push(entry);
-        } else {
-          othersTotal += entry.totalAmount;
-        }
+      let totalStock = 0;
+      stocks.forEach(({ _id, quantity }) => {
+        if (!_id) totalStock += quantity;
+        else totalStock += navMap[_id] * quantity;
       });
-  
-      if (othersTotal > 0) {
-          groupedMutualFunds.push({
-          _id: "Others",
-          name: "Others",
-          totalAmount: othersTotal,
-        });
-      }
-  
-      res.json(groupedMutualFunds);
-    } catch (error) {
-      console.error("Error fetching stock data:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
+
+    res.json({
+      totalMutualFund,
+      totalStock,
+    });
+  } catch (error) {
+    console.error("Error fetching finance summary:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
-  
-module.exports = { investmentSummary, getStockBetween, getMutualFundBetween };
+}
+
+module.exports = {
+  investmentSummary,
+  getStockBetween,
+  getMutualFundBetween,
+  getStockMutualFundSummaryTotal,
+};
