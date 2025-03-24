@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
 
 const MutualFundNavSchema = new mongoose.Schema({
-  code: { type: String, required: true, unique: true }, // Unique Scheme Code
-  name: { type: String, required: true }, // Mutual Fund Name
-  date: { type: String, required: true }, // NAV Date (YYYY-MM-DD)
-  nav: { type: Number, required: true }, // Latest NAV Value
-  lastUpdated: { type: Date, default: Date.now }, // Timestamp when last updated
+  code: { type: String, required: true, unique: true, index: true },
+  name: { type: String, required: true },
+  date: { type: String, required: true }, 
+  nav: { type: Number, required: true },
+  lastUpdated: { type: Date, default: Date.now },
 });
 
 const MutualFundNav = mongoose.model("MutualFundNav", MutualFundNavSchema);
