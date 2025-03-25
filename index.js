@@ -81,7 +81,12 @@ const {
   getMutualFundBetween,
   getStockMutualFundSummaryTotal,
 } = require("./investments/InvestmentService");
-const {  deleteSavingsFund, updateSavingsFund, createSavingsFund, savingsFundList } = require("./controllers/FundService");
+const {
+  deleteSavingsFund,
+  updateSavingsFund,
+  createSavingsFund,
+  savingsFundList,
+} = require("./controllers/FundService");
 require("dotenv").config();
 
 const app = express();
@@ -101,16 +106,13 @@ mongoose.connect(process.env.MONGO_URI, {
 // saving funds
 app.post("/savingsfund/all", async (req, res) => {
   await savingsFundList(req, res);
-})
+});
 app.post("/savingsfund", async (req, res) => {
   await createSavingsFund(req, res);
-})
-app.put("/savingsfund", async (req, res) => {
-  await updateSavingsFund(req, res);
-})
+});
 app.delete("/savingsfund", async (req, res) => {
   await deleteSavingsFund(req, res);
-})
+});
 
 // last 30 days expense
 app.post("/expense/30days", async (req, res) => {
@@ -153,7 +155,7 @@ app.post("/mutual-fund-summary", async (req, res) => {
 
 app.post("/investment/total", async (req, res) => {
   await getStockMutualFundSummaryTotal(req, res);
-})
+});
 
 // get Asset
 app.post("/asset", async (req, res) => {
