@@ -81,6 +81,7 @@ const {
   getMutualFundBetween,
   getStockMutualFundSummaryTotal,
 } = require("./investments/InvestmentService");
+const {  deleteSavingsFund, updateSavingsFund, createSavingsFund, savingsFundList } = require("./controllers/FundService");
 require("dotenv").config();
 
 const app = express();
@@ -96,6 +97,20 @@ app.use(cors(corsOpts));
 mongoose.connect(process.env.MONGO_URI, {
   dbName: "TrackXpenseDB",
 });
+
+// saving funds
+app.post("/savingsfund/all", async (req, res) => {
+  await savingsFundList(req, res);
+})
+app.post("/savingsfund", async (req, res) => {
+  await createSavingsFund(req, res);
+})
+app.put("/savingsfund", async (req, res) => {
+  await updateSavingsFund(req, res);
+})
+app.delete("/savingsfund", async (req, res) => {
+  await deleteSavingsFund(req, res);
+})
 
 // last 30 days expense
 app.post("/expense/30days", async (req, res) => {
