@@ -1,16 +1,63 @@
 const StockPrice = require("../model/StockPrice");
 const puppeteer = require("puppeteer");
 const cheerio = require("cheerio");
+const Stock = require("../model/Stock");
+
+async function scrapeAndStoreStockPrices() {
+  const stockSymbols = await StockPrice.distinct("symbol");
+  const today = new Date().toISOString().split("T")[0];
+
+  console.log(`Found ${stockSymbols.length} stocks to update`);
+
+  const maxRetries = 3;
+  for (const symbol of stockSymbols) {
+    let value = null;
+    let attempts = 0;
+
+    while (attempts < maxRetries) {
+      value = await fetchStockPrice(symbol);
+      if (value !== null) break; 
+      attempts++;
+      console.log(`Retry ${attempts} for ${symbol}`);
+    }
+
+    if (value === null) {
+      console.error(
+        `Failed to fetch price for ${symbol} after ${maxRetries} attempts`
+      );
+      continue;
+    }
+
+    try {
+      await StockPrice.findOneAndUpdate(
+        { symbol }, 
+        {
+          symbol,
+          date: today,
+          time: new Date().toLocaleTimeString(),
+          currentPrice: value,
+        },
+        { upsert: true }
+      );
+
+      console.log(`Updated price for ${symbol}: ₹${value}`);
+    } catch (error) {
+      console.error(`Error updating DB for ${symbol}:`, error.message);
+    }
+  }
+
+  console.log("Stock price scraping completed!");
+}
 
 async function fetchStockPrice(symbol) {
   try {
-    let searchData = symbol.slice(0, -3); 
+    let searchData = symbol.slice(0, -3);
     console.log(`Fetching stock price for: ${searchData}`);
 
     const url = `https://www.bseindia.com/stock-share-price/stockreach_financials.aspx?scripcode=${searchData}`;
 
     const browser = await puppeteer.launch({
-      headless: "new", 
+      headless: "new",
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -64,8 +111,13 @@ async function fetchStockPrices(symbols) {
   const today = new Date().toISOString().split("T")[0];
   console.log("Inside fetchStockPrices");
 
-  const existingStocks = await StockPrice.find({ symbol: { $in: symbols }, date: today });
-  const stockMap = new Map(existingStocks.map(stock => [stock.symbol, stock]));
+  const existingStocks = await StockPrice.find({
+    symbol: { $in: symbols },
+    date: today,
+  });
+  const stockMap = new Map(
+    existingStocks.map((stock) => [stock.symbol, stock])
+  );
 
   const priceData = [];
   const bulkOps = [];
@@ -118,5 +170,4 @@ async function fetchStockPrices(symbols) {
   return priceData;
 }
 
-
-module.exports = { fetchStockPrices };
+module.exports = { fetchStockPrices, scrapeAndStoreStockPrices };
