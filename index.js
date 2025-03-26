@@ -8,6 +8,7 @@ const {
   getUserFinance,
   streakUpdate,
   streakClaim,
+  updateUser,
 } = require("./users/UsersService");
 const {
   createExpense,
@@ -343,13 +344,20 @@ app.post("/asset-liability-summary-total", async (req, res) => {
   await assetLiabilitySummaryTotal(req, res);
 });
 
-cron.schedule("0 15 30 * *", () => {
-  console.log("🚀 Running stock price scraper...");
-  scrapeAndStoreStockPrices();
-}, {
-  scheduled: true,
-  timezone: "Asia/Kolkata",
+app.post("/update-user", async (req, res) => {
+  updateUser(req, res);
 });
+cron.schedule(
+  "0 15 30 * *",
+  () => {
+    console.log("🚀 Running stock price scraper...");
+    scrapeAndStoreStockPrices();
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata",
+  }
+);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
