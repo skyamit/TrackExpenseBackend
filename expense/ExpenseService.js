@@ -2,6 +2,7 @@ const { getNextPaymentDate } = require("../common/Utility");
 const {
   saveLiability,
   updateLiabilityByAmount,
+  updateLiabilityByAmountForLoan,
 } = require("../liability/liabilityService");
 const { startOfToday } = require("date-fns");
 const Expense = require("../model/Expense");
@@ -42,7 +43,7 @@ async function saveExpense({
     } else if (type == "liability") {
       let amt = amount;
       if (liabilityType == "Loan") {
-        await updateLiabilityByAmount({ liabilityId, paid: amt });
+        await updateLiabilityByAmountForLoan({ liabilityId, paid: amt });
       } else {
         liabilityId = await saveLiability({
           userId,

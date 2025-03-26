@@ -74,6 +74,19 @@ async function updateLiabilityByAmount({ liabilityId, paid }) {
   }
 }
 
+async function updateLiabilityByAmountForLoan({ liabilityId, paid }) {
+  let liability = await Liability.findById(liabilityId);
+  let nRemainingAmount = Number(liability.remainingAmount) - Number(paid);
+  if (nRemainingAmount == 0) {
+    await Liability.deleteOne({ _id: liabilityId });
+    return "Liability paid successfully";
+  } else {
+    liability.remainingAmount = nRemainingAmount;
+    await liability.save();
+    return "Liability updated successfully";
+  }
+}
+
 async function updateLiability(req, res) {
   try {
     let { liabilityId, paid } = req.body;
@@ -248,4 +261,5 @@ module.exports = {
   updateLiabilityByAmount,
   liabilitySummary,
   getLoanBetween,
+  updateLiabilityByAmountForLoan
 };
