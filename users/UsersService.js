@@ -1,10 +1,10 @@
 const { sendRegistrationEmail } = require("../mail/Mailservice");
 const User = require("../model/User");
 const UserFinance = require("../model/UserFinance");
+const jwt = require("jsonwebtoken");
 
 async function loginUser(req, res) {
   try {
-    console.log(req);
     const { googleId, name, email, picture } = req.body;
     if (!googleId) {
       return res.status(400).json({ error: "Google ID is required" });
@@ -17,7 +17,6 @@ async function loginUser(req, res) {
       user = new User({ _id: googleId, name, email, picture });
       await sendRegistrationEmail(email, name);
       await user.save();
-      console.log("New user inserted");
     }
     let finance = await UserFinance.find({ userId: user._id });
     if (finance.length == 0) {
@@ -29,6 +28,18 @@ async function loginUser(req, res) {
       });
       finance.save();
     }
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      "h9j#@12#",
+      {
+        expiresIn: "7d",
+      }
+    );
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true, 
+      sameSite: "None", 
+    });
     res.json({ googleId, details: user, message: "Login successful" });
   } catch (error) {
     console.log(error);
@@ -174,5 +185,5 @@ module.exports = {
   getUserFinance,
   updateUserFinance,
   streakUpdate,
-  updateUser
+  updateUser,
 };

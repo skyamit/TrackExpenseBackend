@@ -2,6 +2,9 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cron = require("node-cron");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const frontendUrl = process.env.FRONTEND_URL || "http://localhost:4000";
+
 const {
   loginUser,
   updateUserFinance,
@@ -89,17 +92,34 @@ const {
   savingsFundList,
 } = require("./controllers/FundService");
 const { scrapeAndStoreStockPrices } = require("./stock/StockPriceService");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
 const app = express();
 app.use(express.json());
 const corsOpts = {
-  origin: "*",
+  origin: frontendUrl,
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type"],
 };
 
 app.use(cors(corsOpts));
+app.use(cookieParser());
+const authenticateToken = (req, res, next) => {
+  const token = req.cookies?.token;
+
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: No token provided" });
+  }
+  jwt.verify(token, "h9j#@12#", (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ error: "Forbidden: Invalid token" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 
 mongoose.connect(process.env.MONGO_URI, {
   dbName: "TrackXpenseDB",
@@ -347,8 +367,9 @@ app.post("/asset-liability-summary-total", async (req, res) => {
 app.post("/update-user", async (req, res) => {
   updateUser(req, res);
 });
+
 cron.schedule(
-  "45 15 * * *", 
+  "48 6 * * *",
   () => {
     console.log("🚀 Running stock price scraper...");
     scrapeAndStoreStockPrices();
