@@ -4,7 +4,7 @@ const cheerio = require("cheerio");
 const Stock = require("../model/Stock");
 
 async function scrapeAndStoreStockPrices() {
-  const stockSymbols = await StockPrice.distinct("symbol");
+  const stockSymbols = await Stock.distinct("symbol");
   const today = new Date().toISOString().split("T")[0];
 
   console.log(`Found ${stockSymbols.length} stocks to update`);
@@ -16,7 +16,7 @@ async function scrapeAndStoreStockPrices() {
 
     while (attempts < maxRetries) {
       value = await fetchStockPrice(symbol);
-      if (value !== null) break; 
+      if (value !== null) break;
       attempts++;
       console.log(`Retry ${attempts} for ${symbol}`);
     }
@@ -30,7 +30,7 @@ async function scrapeAndStoreStockPrices() {
 
     try {
       await StockPrice.findOneAndUpdate(
-        { symbol }, 
+        { symbol },
         {
           symbol,
           date: today,
@@ -107,67 +107,102 @@ async function fetchStockPrice(symbol) {
   }
 }
 
-async function fetchStockPrices(symbols) {
-  const today = new Date().toISOString().split("T")[0];
-  console.log("Inside fetchStockPrices");
+// async function fetchStockPrices(symbols) {
+//   const today = new Date().toISOString().split("T")[0];
+//   console.log("Inside fetchStockPrices");
 
+//   const existingStocks = await StockPrice.find({
+//     symbol: { $in: symbols },
+//     date: today,
+//   });
+//   const stockMap = new Map(
+//     existingStocks.map((stock) => [stock.symbol, stock])
+//   );
+
+//   const priceData = [];
+//   const bulkOps = [];
+
+//   await Promise.all(
+//     symbols.map(async (symbol) => {
+//       // fetchStockPriceYahoo(symbol);
+//       let stockData = stockMap.get(symbol);
+
+//       if (stockData) {
+//         let stockObj = stockData.toObject();
+//         stockObj["code"] = stockData.symbol;
+//         stockObj["lastUpdated"] = stockData.updatedAt;
+//         stockObj["nav"] = stockData.currentPrice;
+//         priceData.push(stockObj);
+//         return;
+//       }
+
+//       let price = await fetchStockPrice(symbol);
+//       if (!price) {
+//         console.log(`Failed to fetch price for ${symbol}`);
+//         return;
+//       }
+
+//       let newStockData = {
+//         symbol,
+//         date: today,
+//         time: new Date().toLocaleTimeString(),
+//         currentPrice: price,
+//       };
+
+//       bulkOps.push({
+//         updateOne: {
+//           filter: { symbol },
+//           update: { $set: newStockData },
+//           upsert: true,
+//         },
+//       });
+
+//       newStockData["code"] = symbol;
+//       newStockData["lastUpdated"] = new Date();
+//       newStockData["nav"] = price;
+//       priceData.push(newStockData);
+//     })
+//   );
+
+//   if (bulkOps.length > 0) {
+//     await StockPrice.bulkWrite(bulkOps);
+//   }
+
+//   return priceData;
+// }
+
+async function fetchStockPrices(symbols) {
+  console.log("Inside fetchStockPrices");
+  const today = new Date().toISOString().split("T")[0];
   const existingStocks = await StockPrice.find({
     symbol: { $in: symbols },
-    date: today,
   });
+  console.log(symbols);
   const stockMap = new Map(
     existingStocks.map((stock) => [stock.symbol, stock])
   );
 
   const priceData = [];
-  const bulkOps = [];
 
-  await Promise.all(
-    symbols.map(async (symbol) => {
-      let stockData = stockMap.get(symbol);
-
-      if (stockData) {
-        let stockObj = stockData.toObject();
-        stockObj["code"] = stockData.symbol;
-        stockObj["lastUpdated"] = stockData.updatedAt;
-        stockObj["nav"] = stockData.currentPrice;
-        priceData.push(stockObj);
-        return;
-      }
-
-      let price = await fetchStockPrice(symbol);
-      if (!price) {
-        console.log(`Failed to fetch price for ${symbol}`);
-        return;
-      }
-
-      let newStockData = {
+  symbols.forEach((symbol) => {
+    let stockData = stockMap.get(symbol);
+    if (stockData) {
+      priceData.push({
         symbol,
         date: today,
         time: new Date().toLocaleTimeString(),
-        currentPrice: price,
-      };
-
-      bulkOps.push({
-        updateOne: {
-          filter: { symbol },
-          update: { $set: newStockData },
-          upsert: true,
-        },
+        currentPrice: stockData.currentPrice,
+        code: stockData.symbol,
+        lastUpdated: stockData.updatedAt,
+        nav: stockData.currentPrice,
       });
-
-      newStockData["code"] = symbol;
-      newStockData["lastUpdated"] = new Date();
-      newStockData["nav"] = price;
-      priceData.push(newStockData);
-    })
-  );
-
-  if (bulkOps.length > 0) {
-    await StockPrice.bulkWrite(bulkOps);
-  }
-
+    }
+  });
   return priceData;
 }
 
-module.exports = { fetchStockPrices, scrapeAndStoreStockPrices };
+module.exports = {
+  fetchStockPrices,
+  scrapeAndStoreStockPrices,
+  fetchStockPrice,
+};

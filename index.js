@@ -368,8 +368,13 @@ app.post("/update-user", async (req, res) => {
   updateUser(req, res);
 });
 
+app.post("/update-stocks", async (req, res) => {
+  scrapeAndStoreStockPrices();
+  res.status(200).json({});
+});
+
 cron.schedule(
-  "31 15 * * *",
+  "0 */2 * * *",
   () => {
     console.log("🚀 Running stock price scraper...");
     scrapeAndStoreStockPrices();

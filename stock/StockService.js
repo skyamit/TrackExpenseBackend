@@ -4,7 +4,7 @@ const Asset = require("../model/Asset");
 const Earning = require("../model/Earning");
 const Expense = require("../model/Expense");
 const Stock = require("../model/Stock");
-const { fetchStockPrices } = require("./StockPriceService");
+const { fetchStockPrices, fetchStockPrice } = require("./StockPriceService");
 
 async function createStock(req, res) {
   try {
@@ -34,6 +34,7 @@ async function createStock(req, res) {
     });
     await stock.save();
     res.json({ message: "Stock purchase recorded" });
+    fetchStockPrice(symbol);
   } catch (error) {
     console.error("Error in createStock:", error);
     res.status(500).json({ error: "Internal Server Error" });
