@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const cron = require("node-cron");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-const frontendUrl = process.env.FRONTEND_URL || "http://localhost:4000";
+// const frontendUrl = process.env.FRONTEND_URL || "http://localhost:4000";
 
 const {
   loginUser,
@@ -105,21 +105,21 @@ const corsOpts = {
 };
 
 app.use(cors(corsOpts));
-app.use(cookieParser());
-const authenticateToken = (req, res, next) => {
-  const token = req.cookies?.token;
+// app.use(cookieParser());
+// const authenticateToken = (req, res, next) => {
+//   const token = req.cookies?.token;
 
-  if (!token) {
-    return res.status(401).json({ error: "Unauthorized: No token provided" });
-  }
-  jwt.verify(token, "h9j#@12#", (err, decoded) => {
-    if (err) {
-      return res.status(403).json({ error: "Forbidden: Invalid token" });
-    }
-    req.user = decoded;
-    next();
-  });
-};
+//   if (!token) {
+//     return res.status(401).json({ error: "Unauthorized: No token provided" });
+//   }
+//   jwt.verify(token, "h9j#@12#", (err, decoded) => {
+//     if (err) {
+//       return res.status(403).json({ error: "Forbidden: Invalid token" });
+//     }
+//     req.user = decoded;
+//     next();
+//   });
+// };
 
 mongoose.connect(process.env.MONGO_URI, {
   dbName: "TrackXpenseDB",

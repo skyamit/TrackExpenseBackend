@@ -28,18 +28,18 @@ async function loginUser(req, res) {
       });
       finance.save();
     }
-    const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      "h9j#@12#",
-      {
-        expiresIn: "7d",
-      }
-    );
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true, 
-      sameSite: "None", 
-    });
+    // const token = jwt.sign(
+    //   { userId: user._id, email: user.email },
+    //   "h9j#@12#",
+    //   {
+    //     expiresIn: "7d",
+    //   }
+    // );
+    // res.cookie("token", token, {
+    //   httpOnly: true,
+    //   secure: true, 
+    //   sameSite: "None", 
+    // });
     res.json({ googleId, details: user, message: "Login successful" });
   } catch (error) {
     console.log(error);
