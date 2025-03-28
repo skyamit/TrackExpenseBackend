@@ -93,6 +93,8 @@ const {
 } = require("./controllers/FundService");
 const { scrapeAndStoreStockPrices } = require("./stock/StockPriceService");
 const cookieParser = require("cookie-parser");
+const { getMessage } = require("./users/MessageService");
+const Message = require("./model/Message");
 require("dotenv").config();
 
 const app = express();
@@ -371,6 +373,24 @@ app.post("/update-user", async (req, res) => {
 app.post("/update-stocks", async (req, res) => {
   scrapeAndStoreStockPrices();
   res.status(200).json({});
+});
+
+// anouncement
+app.get("/announcement/message", async (req, res) => {
+  // await Message.insertMany([
+  //   {
+  //     message:
+  //       "Success is not final, failure is not fatal. It is the courage to continue that counts.",
+  //     type: "thoughts",
+  //     createdAt: new Date(),
+  //   },
+  //   {
+  //     message: "Believe you can, and you're halfway there.",
+  //     type: "announcement",
+  //     createdAt: new Date(),
+  //   }
+  // ]);
+  getMessage(req, res);
 });
 
 cron.schedule(

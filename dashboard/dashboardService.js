@@ -113,7 +113,7 @@ async function getEarningSummaryBetween(req, res) {
     let othersTotal = 0;
 
     earnings.forEach((entry, index) => {
-      if (index < 5) {
+      if (index < 8) {
         groupedEarnings.push(entry);
       } else {
         othersTotal += entry.totalAmount;
@@ -153,7 +153,7 @@ async function getExpenseSummaryBetween(req, res) {
 
     expenses.forEach((entry, index) => {
       const percentage = (entry.totalAmount / totalExpenses) * 100;
-      if (index < 5) {
+      if (index < 8) {
         groupedExpenses.push(entry);
       } else {
         othersTotal += entry.totalAmount;
