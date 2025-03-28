@@ -231,7 +231,7 @@ async function getLoanBetween(req, res) {
     let othersTotal = 0;
 
     loan.forEach((entry, index) => {
-      if (index < 5) {
+      if (index < 8) {
         groupedLoans.push(entry);
       } else {
         othersTotal += entry.remainingAmount;

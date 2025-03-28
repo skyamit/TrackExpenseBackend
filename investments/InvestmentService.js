@@ -95,7 +95,7 @@ async function getStockBetween(req, res) {
     let othersTotal = 0;
 
     stocks.forEach((entry, index) => {
-      if (index < 5) {
+      if (index < 8) {
         groupedStocks.push(entry);
       } else {
         othersTotal += entry.totalAmount;
@@ -148,7 +148,7 @@ async function getMutualFundBetween(req, res) {
     let othersTotal = 0;
 
     mutualFund.forEach((entry, index) => {
-      if (index < 5) {
+      if (index < 8) {
         groupedMutualFunds.push(entry);
       } else {
         othersTotal += entry.totalAmount;
