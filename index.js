@@ -57,6 +57,7 @@ const {
   fetchAllAssetWithValue,
   assetLiabilitySummary,
   assetLiabilitySummaryTotal,
+  healthScore,
 } = require("./asset/assetService");
 const {
   getAllLiability,
@@ -374,6 +375,10 @@ app.post("/update-stocks", async (req, res) => {
   scrapeAndStoreStockPrices();
   res.status(200).json({});
 });
+
+app.post("/score/health-score", async (req, res) => {
+  healthScore(req, res);
+})
 
 // anouncement
 app.get("/announcement/message", async (req, res) => {
