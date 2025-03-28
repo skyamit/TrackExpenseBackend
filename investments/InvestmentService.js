@@ -169,74 +169,82 @@ async function getMutualFundBetween(req, res) {
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
+async function getMutualFundSummaryTotal({ userId }) {
+  const navMap = {};
+
+  const mutualFundCodes = await MutualFund.distinct("schemeCode", {
+    userId: userId,
+    schemeCode: { $ne: null },
+  });
+  if (mutualFundCodes.length > 0) {
+    let navData = await getMultipleFundsNAVFromCode(mutualFundCodes);
+    navData.forEach((fund) => {
+      navMap[fund.code] = fund.nav;
+    });
+  }
+  const mutualFunds = await MutualFund.aggregate([
+    {
+      $match: {
+        userId,
+      },
+    },
+    {
+      $group: {
+        _id: "$schemeCode",
+        quantity: { $sum: "$quantity" },
+      },
+    },
+  ]);
+
+  let totalMutualFund = 0;
+  mutualFunds.forEach(({ _id, quantity }) => {
+    if (!_id) totalMutualFund += quantity;
+    else totalMutualFund += navMap[_id] * quantity;
+  });
+
+  return totalMutualFund;
+}
+async function getStockSummaryTotal({ userId }) {
+  const navMap = {};
+
+  const stockCodes = await Stock.distinct("symbol", {
+    userId: userId,
+    symbol: { $ne: null },
+  });
+  if (stockCodes.length > 0) {
+    let stockData = await fetchStockPrices(stockCodes);
+    stockData.forEach((stock) => {
+      navMap[stock.code] = stock.nav;
+    });
+  }
+  const stocks = await Stock.aggregate([
+    {
+      $match: {
+        userId,
+      },
+    },
+    {
+      $group: {
+        _id: "$symbol",
+        quantity: { $sum: "$quantity" },
+      },
+    },
+  ]);
+
+  let totalStock = 0;
+  stocks.forEach(({ _id, quantity }) => {
+    if (!_id) totalStock += quantity;
+    else totalStock += navMap[_id] * quantity;
+  });
+  return totalStock;
+}
 
 async function getStockMutualFundSummaryTotal(req, res) {
   try {
     let { userId } = req.body;
 
-    const mutualFundCodes = await MutualFund.distinct("schemeCode", {
-      userId: userId,
-      schemeCode: { $ne: null },
-    });
-
-    const stockCodes = await Stock.distinct("symbol", {
-      userId: userId,
-      symbol: { $ne: null },
-    });
-
-    const navMap = {};
-    if (stockCodes.length > 0) {
-      let stockData = await fetchStockPrices(stockCodes);
-      stockData.forEach((stock) => {
-        navMap[stock.code] = stock.nav;
-      });
-    }
-    if (mutualFundCodes.length > 0) {
-      let navData = await getMultipleFundsNAVFromCode(mutualFundCodes);
-      navData.forEach((fund) => {
-        navMap[fund.code] = fund.nav;
-      });
-    }
-
-    const mutualFunds = await MutualFund.aggregate([
-      {
-        $match: {
-          userId,
-        },
-      },
-      {
-        $group: {
-          _id: "$schemeCode",
-          quantity: { $sum: "$quantity" },
-        },
-      },
-    ]);
-
-    let totalMutualFund = 0;
-    mutualFunds.forEach(({ _id, quantity }) => {
-      if (!_id) totalMutualFund += quantity;
-      else totalMutualFund += navMap[_id] * quantity;
-    });
-
-    const stocks = await Stock.aggregate([
-        {
-          $match: {
-            userId,
-          },
-        },
-        {
-          $group: {
-            _id: "$symbol",
-            quantity: { $sum: "$quantity" },
-          },
-        },
-      ]);
-  
-      let totalStock = 0;
-      stocks.forEach(({ _id, quantity }) => {
-        if (!_id) totalStock += quantity;
-        else totalStock += navMap[_id] * quantity;
-      });
+    let totalStock = await getStockSummaryTotal({userId});
+    let totalMutualFund = await getMutualFundSummaryTotal({userId});
 
     res.json({
       totalMutualFund,
@@ -253,4 +261,6 @@ module.exports = {
   getStockBetween,
   getMutualFundBetween,
   getStockMutualFundSummaryTotal,
+  getStockSummaryTotal, 
+  getMutualFundSummaryTotal
 };
